@@ -42,35 +42,38 @@ def split_to_windows(frame, rows, cols, overlap):
     windows = view_as_windows(frame, (rows, cols), step = step)
     return np.vstack(windows)
 
-def process(filename):
+def create_error_file(filename):
+    # 1. Read checkpoint hdf5 files
     data = hdf5_to_numpy(filename)
-    print("read file finished")
+    print("1. Read file", filename)
 
-    # Insert an error
-    #x, y = random.randint(1, data.shape[0])-1, random.randint(1, data.shape[1])-1
-    #data[x, y] = get_flip_error(data[x, y])
-    #print("error:", x, y, data[x,y])
+    # 2. Insert an error
+    x, y = random.randint(1, data.shape[0])-1, random.randint(1, data.shape[1])-1
+    data[x, y] = get_flip_error(data[x, y])
+    print("2. Insert error:", x, y, data[x,y])
 
-    # Save into a binary file
-    filename = filename + ".dat"
+    # 3. Save into a binary file so we can compress it
+    filename = filename + ".error.dat"
     data.tofile(filename)
-    print("save to", filename)
+    print("3. Save to binary", filename)
 
-    # 1. Compress the data, which contains one error
+    # 4. Compress the data, which contains one error
     # The output will be xxx.sz
-    #os.system("./sz -z -d -c sz.config -i " + filename + " -2 480 480")
+    os.system("./sz -z -d -c sz.config -i " + filename + " -2 480 480")
 
-    # 2. Decompress the data
+    # 5. Decompress the data
     # The output file name would be xxx.sz.out
-    #os.system("./sz -x -d -s " + filename + ".sz -2 480 480")
+    os.system("./sz -x -d -s " + filename + ".sz -2 480 480")
 
     #test_sz(filename, filename+".sz.out")
 
-    # 3. Read back the decompressed data
+    # 6. Read back the decompressed data
     #decompressed = np.fromfile(filename+".sz.out", dtype=np.double).reshape(480, 480)
     #windows = split_to_windows(decompressed, 60, 60, 20)
     #np.save(filename+".npy", windows)
     #print "save to npy"
+
+
 
 def combine_to_one_npy(directory):
     clean_dataset, error_dataset = [], []
@@ -87,10 +90,20 @@ def combine_to_one_npy(directory):
     np.save("clean.npy", clean)
     np.save("error.npy", error)
 
+def create_error_dataset(data_dir):
+    for filename in glob.iglob(data_dir+"/*plt_cnt_*"):
+        if ".dat" not in filename:
+            create_error_file(filename)
 
-if __name__ == "__main__":
-    for filename in glob.iglob(sys.argv[1]+"/*plt_cnt_*"):
+def create_clean_dataset(data_dir):
+    for filename in glob.iglob(data_dir+"/*plt_cnt_*"):
         if ".dat" not in filename:
             print filename
-            process(filename)
-    #combine_to_one_npy(sys.argv[1])
+            data = hdf5_to_numpy(filename)
+            filename = filename + ".clean.dat"
+            data.tofile(filename)   # Save to binary format
+
+if __name__ == "__main__":
+    create_clean_dataset(sys.argv[1])
+    #create_error_dataset(sys.argv[1])
+
