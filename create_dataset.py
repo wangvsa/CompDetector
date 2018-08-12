@@ -4,6 +4,7 @@ import numpy as np
 import glob
 from skimage.util.shape import view_as_windows, view_as_blocks
 
+# See the difference of clean data and decompressed data with one error
 def test_sz(origin_file, decompressed_file):
     origin = np.fromfile(origin_file, dtype=np.double)
     decompressed = np.fromfile(decompressed_file, dtype=np.double)
