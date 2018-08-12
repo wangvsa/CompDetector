@@ -1,0 +1,6 @@
+
+ZFP
+1. comress:
+./zfp -d -2 480 480 -a 0.1 -i sod_hdf5_plt_cnt_0500.dat -z sod_hdf5_plt_cnt_0500.dat.zfp
+2. decompress:
+./zfp -d -2 480 480 -a 0.1 -z ./sod_hdf5_plt_cnt_0500.dat.zfp -o sod_hdf5_plt_cnt_0500.dat.zfp.out
