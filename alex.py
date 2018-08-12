@@ -45,41 +45,21 @@ class FlashNet(nn.Module):
     def __init__(self):
         super(FlashNet, self).__init__()
         self.conv = nn.Sequential(
-            nn.Conv2d(len(variables), 64, 5, stride=2),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(len(variables), 46, 5, stride=2),
+            nn.BatchNorm2d(46),
             nn.ReLU(),
             nn.MaxPool2d(3, stride=1),
-
-            nn.Conv2d(64, 64, 3, stride=2),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.MaxPool2d(3, stride=1),
-
-            nn.Conv2d(64, 96, 3, stride=2),
-            nn.BatchNorm2d(96),
-            nn.ReLU(),
-            nn.Conv2d(96, 96, 3, stride=2),
-            nn.BatchNorm2d(96),
-            nn.ReLU(),
-
-            nn.Conv2d(96, 64, 3, stride=2),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.Conv2d(64, 32, 3, stride=1),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.MaxPool2d(3, stride=1)
         )
         conv_output_size = self.get_conv_output_size()
         print "conv output size: ", conv_output_size
         self.fc = nn.Sequential(
-            nn.Linear(in_features=conv_output_size, out_features=768, bias=True),
-            nn.ReLU(),
-            nn.Dropout(p=0.5),
-            nn.Linear(768, 512),
-            nn.ReLU(),
-            nn.Dropout(p=0.5),
-            nn.Linear(512, 1),
+            nn.Linear(in_features=conv_output_size, out_features=1, bias=True),
+            #nn.ReLU(),
+            #nn.Dropout(p=0.2),
+            #nn.Linear(768, 512),
+            #nn.ReLU(),
+            #nn.Dropout(p=0.5),
+            #nn.Linear(512, 1),
             nn.Sigmoid()
         )
     def forward(self, x):
@@ -117,8 +97,8 @@ def training(model, train_loader, epochs=5, use_gpu=True):
             optimizer.step()
 
             running_loss += loss.data[0]
-            if i % 5 == 0:
-                print("epoch:%s i:%s loss:%s" %(epoch, i, running_loss/50))
+            if i % 20 == 0 && i != 0:
+                print("epoch:%s i:%s loss:%s" %(epoch, i, running_loss/20))
                 running_loss = 0
 
 def evaluating(model, test_loader, use_gpu=True):
@@ -140,7 +120,7 @@ def evaluating(model, test_loader, use_gpu=True):
         false_positive += ((pred^truth) & pred).sum()
         false_negative += ((pred^truth) & truth).sum()
 
-        if i%5==0:
+        if i%20==0:
             print i, num_correct, false_positive, false_negative
         del output
         del inputs

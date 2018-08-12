@@ -74,7 +74,6 @@ def create_error_file(filename):
     #print "save to npy"
 
 
-
 def combine_to_one_npy(directory):
     clean_dataset, error_dataset = [], []
     for filename in glob.iglob(directory+"/*plt_cnt_*"):
@@ -104,6 +103,6 @@ def create_clean_dataset(data_dir):
             data.tofile(filename)   # Save to binary format
 
 if __name__ == "__main__":
-    create_clean_dataset(sys.argv[1])
-    #create_error_dataset(sys.argv[1])
+    #create_clean_dataset(sys.argv[1])
+    create_error_dataset(sys.argv[1])
 
