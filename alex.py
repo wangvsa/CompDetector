@@ -45,8 +45,8 @@ class FlashNet(nn.Module):
     def __init__(self):
         super(FlashNet, self).__init__()
         self.conv = nn.Sequential(
-            nn.Conv2d(len(variables), 46, 5, stride=2),
-            nn.BatchNorm2d(46),
+            nn.Conv2d(len(variables), 32, 5, stride=2),
+            nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(3, stride=1),
         )
@@ -79,17 +79,26 @@ def training(model, train_loader, epochs=5, use_gpu=True):
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
     #optimizer = torch.optim.SGD(model.parameters(), lr = 1e-6, momentum=0.5)
     #optimizer = torch.optim.RMSprop(model.parameters(), lr=0.0001)
-    loss_func = nn.BCELoss()
+    #loss_func = nn.BCELoss()
 
     running_loss = 0
     for epoch in range(epochs):
         for i, data in enumerate(train_loader):
             inputs, labels = data
+
+            samples = labels.size()[0]
+            weights = torch.DoubleTensor([2.0]*samples).view(-1, 1)  # shape of (BATCH_SIZE, 1)
+
             if torch.cuda.is_available() and use_gpu:
                 inputs, labels = inputs.cuda(), labels.cuda()
+                weights = weights.cuda()
             inputs, labels = Variable(inputs), Variable(labels)
             optimizer.zero_grad()
             outputs = model(inputs)
+
+            # This makes class 1 has less weights
+            weights = weights - 1.0 * labels.data
+            loss_func = nn.BCELoss(weights)
 
             loss = loss_func(outputs, labels)
             loss.backward()
@@ -97,7 +106,7 @@ def training(model, train_loader, epochs=5, use_gpu=True):
             optimizer.step()
 
             running_loss += loss.data[0]
-            if i % 20 == 0 && i != 0:
+            if i % 20 == 0 and i != 0:
                 print("epoch:%s i:%s loss:%s" %(epoch, i, running_loss/20))
                 running_loss = 0
 
