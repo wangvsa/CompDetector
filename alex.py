@@ -20,11 +20,11 @@ class FlashDataset(torch.utils.data.Dataset):
         self.targets = []
 
         # Add error data
-        error_data_files = list(glob.iglob(data_dir+"/error/*"))
+        error_data_files = list(glob.iglob(data_dir+"/*/error/*"))
         self.targets.append(np.ones((len(error_data_files), 1)))
 
         # Add clean data
-        clean_data_files = list(glob.iglob(data_dir+"/clean/*"))
+        clean_data_files = list(glob.iglob(data_dir+"/*/clean/*"))
         self.targets.append(np.zeros((len(clean_data_files), 1)))
 
         self.data_files = error_data_files+clean_data_files
@@ -97,7 +97,7 @@ def training(model, train_loader, epochs=5, use_gpu=True):
             outputs = model(inputs)
 
             # This makes class 1 has less weights
-            weights = weights - 1.0 * labels.data
+            #weights = weights - 1.0 * labels.data
             loss_func = nn.BCELoss(weights)
 
             loss = loss_func(outputs, labels)

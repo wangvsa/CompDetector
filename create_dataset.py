@@ -103,6 +103,6 @@ def create_clean_dataset(data_dir):
             data.tofile(filename)   # Save to binary format
 
 if __name__ == "__main__":
-    #create_clean_dataset(sys.argv[1])
-    create_error_dataset(sys.argv[1])
+    create_clean_dataset(sys.argv[1])
+    #create_error_dataset(sys.argv[1])
 
