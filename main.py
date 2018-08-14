@@ -39,8 +39,8 @@ if __name__ == "__main__":
     # Training
     trainset = FlashDataset(sys.argv[1])
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
-    alex.training(model, train_loader, epochs=3, use_gpu=USE_GPU)
-    torch.save(model, model_file)
+    #alex.training(model, train_loader, epochs=1, use_gpu=USE_GPU)
+    #torch.save(model, model_file)
 
     # Testing
     alex.evaluating(model, train_loader, use_gpu=USE_GPU)

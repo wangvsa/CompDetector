@@ -87,7 +87,7 @@ def training(model, train_loader, epochs=5, use_gpu=True):
             inputs, labels = data
 
             samples = labels.size()[0]
-            weights = torch.DoubleTensor([2.0]*samples).view(-1, 1)  # shape of (BATCH_SIZE, 1)
+            weights = torch.DoubleTensor([1.0]*samples).view(-1, 1)  # shape of (BATCH_SIZE, 1)
 
             if torch.cuda.is_available() and use_gpu:
                 inputs, labels = inputs.cuda(), labels.cuda()
@@ -97,7 +97,7 @@ def training(model, train_loader, epochs=5, use_gpu=True):
             outputs = model(inputs)
 
             # This makes class 1 has less weights
-            #weights = weights - 1.0 * labels.data
+            weights = weights - 0.01 * labels.data
             loss_func = nn.BCELoss(weights)
 
             loss = loss_func(outputs, labels)
@@ -122,7 +122,7 @@ def evaluating(model, test_loader, use_gpu=True):
         inputs, labels = Variable(inputs), Variable(labels)
         output = model(inputs)
 
-        pred = (output.data >= 0.5).view(-1, 1)
+        pred = (output.data >= 0.52).view(-1, 1)
         truth = (labels.data >= 0.5).view(-1, 1)
         num_correct += (pred == truth).sum()
         true_positive += ((pred == truth) & pred ).sum()
