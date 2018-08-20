@@ -3,6 +3,7 @@ import bitstring, math
 import numpy as np
 import glob
 from skimage.util.shape import view_as_windows, view_as_blocks
+NX, NY = 60, 60
 
 # See the difference of clean data and decompressed data with one error
 def test_sz(origin_file, decompressed_file):
@@ -94,15 +95,48 @@ def create_error_dataset(data_dir):
         if ".dat" not in filename:
             create_error_file(filename)
 
-def create_clean_dataset(data_dir):
+
+
+def create_split_error_dataset(data_dir):
+    for filename in glob.iglob(data_dir+"/*clean.dat"):
+        # 1. Read clean data
+        data = np.fromfile(filename, dtype=np.double).reshape(NX, NY)
+
+        # 2. Insert an error
+        x, y = random.randint(40, data.shape[0])-20, random.randint(40, data.shape[1])-20
+        data[x, y] = get_flip_error(data[x, y])
+        #print("2. Insert error:", x, y, data[x,y])
+
+        # 3. Save into a binary file so we can compress it
+        # replace error in the path, so later the file will be
+        # automatically decompressed to the error directory :)
+        filename = filename.replace("clean", "error")
+        data.tofile(filename)
+        #print("3. Save to binary", filename)
+
+        # 4. Compress the data, which contains one error
+        # The output will be xxx.sz
+        os.system("./sz -z -d -c sz.config -i " + filename + " -2 "+str(NX)+" "+str(NY))
+
+        # 5. Decompress the data
+        # The output file name would be xxx.sz.out
+        os.system("./sz -x -d -s " + filename + ".sz -2 "+str(NX)+" "+str(NY))
+
+        os.system("rm " + filename)
+        os.system("rm " + filename+".sz")
+
+
+def create_split_clean_dataset(data_dir):
     for filename in glob.iglob(data_dir+"/*plt_cnt_*"):
         if ".dat" not in filename:
             print filename
             data = hdf5_to_numpy(filename)
-            filename = filename + ".clean.dat"
-            data.tofile(filename)   # Save to binary format
+            windows = split_to_windows(data, NX, NY, 20)
+            for i in range(windows.shape[0]):
+                output_filename = filename + "." + str(i) +".clean.dat"
+                windows[i].tofile(output_filename)   # Save to binary format
 
 if __name__ == "__main__":
-    #create_clean_dataset(sys.argv[1])
-    create_error_dataset(sys.argv[1])
+    #create_split_clean_dataset(sys.argv[1])
+    create_split_error_dataset(sys.argv[1])
 

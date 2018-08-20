@@ -10,7 +10,8 @@ import argparse
 
 BATCH_SIZE = 64
 variables = ['dens']
-NX, NY = 480, 480
+#NX, NY = 480, 480
+NX, NY = 60, 60
 CONV_INPUT_SHAPE = (len(variables), NX, NY)
 
 
@@ -45,20 +46,20 @@ class FlashNet(nn.Module):
     def __init__(self):
         super(FlashNet, self).__init__()
         self.conv = nn.Sequential(
-            nn.Conv2d(len(variables), 32, 5, stride=2),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
+            nn.Conv2d(len(variables), 64, 3, stride=1),
+            nn.BatchNorm2d(64),
             nn.MaxPool2d(3, stride=1),
+            nn.ReLU(),
         )
         conv_output_size = self.get_conv_output_size()
         print "conv output size: ", conv_output_size
         self.fc = nn.Sequential(
             nn.Linear(in_features=conv_output_size, out_features=1, bias=True),
             #nn.ReLU(),
-            #nn.Dropout(p=0.2),
+            nn.Dropout(p=0.2),
             #nn.Linear(768, 512),
             #nn.ReLU(),
-            #nn.Dropout(p=0.5),
+            #nn.Dropout(p=0.2),
             #nn.Linear(512, 1),
             nn.Sigmoid()
         )
