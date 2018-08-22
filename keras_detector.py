@@ -40,13 +40,36 @@ model.compile(optimizer='adam',
               loss='binary_crossentropy',
               metrics=['accuracy'])
 
+def compute_metrics(pred_labels, true_labels):
+    # True Positive (TP): we predict a label of 1 (positive), and the true label is 1.
+    TP = np.sum(np.logical_and(pred_labels == 1, true_labels == 1))
+    # True Negative (TN): we predict a label of 0 (negative), and the true label is 0.
+    TN = np.sum(np.logical_and(pred_labels == 0, true_labels == 0))
+    # False Positive (FP): we predict a label of 1 (positive), but the true label is 0.
+    FP = np.sum(np.logical_and(pred_labels == 1, true_labels == 0))
+    # False Negative (FN): we predict a label of 0 (negative), but the true label is 1.
+    FN = np.sum(np.logical_and(pred_labels == 0, true_labels == 1))
+    print 'TP: %i, FP: %i, TN: %i, FN: %i' % (TP,FP,TN,FN)
+
 if __name__ == "__main__":
-    data_gen = FlashDatasetGenerator(sys.argv[1], 64)
+    data_gen = FlashDatasetGenerator(sys.argv[1], 121)
+    '''
     model.load_weights('model_keras.h5')
     model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=20)
     model.save_weights('model_keras.h5')
+    '''
 
-    #model.load_weights('my_model_weights.h5')
+    model.load_weights('model_keras.h5')
     #scores = model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8)
     #print scores
+    scores = model.predict_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
+    print scores.shape
+    scores = scores.reshape((len(scores)/121, 121))
+    print scores.shape
+    scores = (scores >= 0.5)    # shape of (N, 121)
+    pred = np.any(scores, axis=1)
+    print pred.shape
+    print pred
+    truth = np.array([0]*1001+[1]*1001)
+    compute_metrics(pred, truth)
 
