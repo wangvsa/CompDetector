@@ -95,8 +95,6 @@ def create_error_dataset(data_dir):
         if ".dat" not in filename:
             create_error_file(filename)
 
-
-
 def create_split_error_dataset(data_dir):
     for filename in glob.iglob(data_dir+"/*clean.dat"):
         # 1. Read clean data
@@ -125,6 +123,14 @@ def create_split_error_dataset(data_dir):
         os.system("rm " + filename)
         os.system("rm " + filename+".sz")
 
+def create_split_error_testset(data_dir):
+    for filename in glob.iglob(data_dir+"/*plt_cnt_*.sz.out"):
+        print filename
+        data = np.fromfile(filename, dtype=np.double).reshape(480, 480)
+        windows = split_to_windows(data, NX, NY, 20)
+        for i in range(windows.shape[0]):
+            output_filename = filename + "." + str(i) +".error.dat"
+            windows[i].tofile(output_filename)   # Save to binary format
 
 def create_split_clean_dataset(data_dir):
     for filename in glob.iglob(data_dir+"/*plt_cnt_*"):
@@ -138,5 +144,6 @@ def create_split_clean_dataset(data_dir):
 
 if __name__ == "__main__":
     #create_split_clean_dataset(sys.argv[1])
-    create_split_error_dataset(sys.argv[1])
+    #create_split_error_dataset(sys.argv[1])
+    create_split_error_testset(sys.argv[1])
 
