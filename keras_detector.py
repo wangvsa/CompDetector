@@ -8,8 +8,8 @@ NX, NY = 60, 60
 
 class FlashDatasetGenerator(keras.utils.Sequence):
     def __init__(self, data_dir, batch_size):
-        clean_files = list(glob.iglob(data_dir+"*/clean/*.dat"))
-        error_files = list(glob.iglob(data_dir+"*/error/*.out"))
+        clean_files = glob.glob(data_dir+"*/clean/*.dat*")
+        error_files = glob.glob(data_dir+"*/error/*.out*")
         self.files = clean_files + error_files
         self.labels = np.append(np.zeros(len(clean_files)), np.ones(len(error_files)))
         self.batch_size = batch_size
@@ -41,18 +41,24 @@ model.compile(optimizer='adam',
               metrics=['accuracy'])
 
 def compute_metrics(pred_labels, true_labels):
+    clean_samples = np.sum(true_labels == 0) * 1.0
+    error_samples = np.sum(true_labels == 1) * 1.0
+    total = clean_samples + error_samples * 1.0
     # True Positive (TP): we predict a label of 1 (positive), and the true label is 1.
-    TP = np.sum(np.logical_and(pred_labels == 1, true_labels == 1))
+    tp = np.sum(np.logical_and(pred_labels == 1, true_labels == 1))
     # True Negative (TN): we predict a label of 0 (negative), and the true label is 0.
-    TN = np.sum(np.logical_and(pred_labels == 0, true_labels == 0))
+    tn = np.sum(np.logical_and(pred_labels == 0, true_labels == 0))
     # False Positive (FP): we predict a label of 1 (positive), but the true label is 0.
-    FP = np.sum(np.logical_and(pred_labels == 1, true_labels == 0))
+    fp = np.sum(np.logical_and(pred_labels == 1, true_labels == 0))
     # False Negative (FN): we predict a label of 0 (negative), but the true label is 1.
-    FN = np.sum(np.logical_and(pred_labels == 0, true_labels == 1))
-    print 'TP: %i, FP: %i, TN: %i, FN: %i' % (TP,FP,TN,FN)
+    fn = np.sum(np.logical_and(pred_labels == 0, true_labels == 1))
+
+    recall, fpr = tp / error_samples, fp / total
+    print 'TP: %s (%i/%i), FP: %s (%i/%i)' %(recall, tp, error_samples, fpr, fp, total)
+    print 'TN: %i, FN: %i' %(tn, fn)
 
 if __name__ == "__main__":
-    data_gen = FlashDatasetGenerator(sys.argv[1], 121)
+    data_gen = FlashDatasetGenerator(sys.argv[1], 64)
     '''
     model.load_weights('model_keras.h5')
     model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=20)
