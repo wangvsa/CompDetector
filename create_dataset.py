@@ -74,7 +74,6 @@ def create_error_file(filename):
     #np.save(filename+".npy", windows)
     #print "save to npy"
 
-
 def combine_to_one_npy(directory):
     clean_dataset, error_dataset = [], []
     for filename in glob.iglob(directory+"/*plt_cnt_*"):
@@ -95,6 +94,8 @@ def create_error_dataset(data_dir):
         if ".dat" not in filename:
             create_error_file(filename)
 
+# Read from split_data directory 
+# Read window by window and inject one error into each window
 def create_split_error_dataset(data_dir):
     for filename in glob.iglob(data_dir+"/*clean.dat"):
         # 1. Read clean data
@@ -123,6 +124,8 @@ def create_split_error_dataset(data_dir):
         os.system("rm " + filename)
         os.system("rm " + filename+".sz")
 
+# Read from unsplit_data/error directory
+# where each file contains only one error
 def create_split_error_testset(data_dir):
     for filename in glob.iglob(data_dir+"/*plt_cnt_*.sz.out"):
         print filename
@@ -132,18 +135,21 @@ def create_split_error_testset(data_dir):
             output_filename = filename + "." + str(i) +".error.dat"
             windows[i].tofile(output_filename)   # Save to binary format
 
+# Read from FLASH directory(hdf5 files) or unsplit_data directory(binary files)
 def create_split_clean_dataset(data_dir):
     for filename in glob.iglob(data_dir+"/*plt_cnt_*"):
-        if ".dat" not in filename:
-            print filename
+        print filename
+        if ".dat" in filename:
+            data = np.fromfile(filename, dtype=np.double).reshape(480, 480)
+        else:
             data = hdf5_to_numpy(filename)
-            windows = split_to_windows(data, NX, NY, 20)
-            for i in range(windows.shape[0]):
-                output_filename = filename + "." + str(i) +".clean.dat"
-                windows[i].tofile(output_filename)   # Save to binary format
+        windows = split_to_windows(data, NX, NY, 20)
+        for i in range(windows.shape[0]):
+            output_filename = filename + "." + str(i) +".clean.dat"
+            windows[i].tofile(output_filename)   # Save to binary format
 
 if __name__ == "__main__":
-    #create_split_clean_dataset(sys.argv[1])
+    create_split_clean_dataset(sys.argv[1])
     #create_split_error_dataset(sys.argv[1])
-    create_split_error_testset(sys.argv[1])
+    #create_split_error_testset(sys.argv[1])
 
