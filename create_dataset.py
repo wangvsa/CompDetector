@@ -94,7 +94,7 @@ def create_error_dataset(data_dir):
         if ".dat" not in filename:
             create_error_file(filename)
 
-# Read from split_data directory 
+# Read from split_data directory
 # Read window by window and inject one error into each window
 def create_split_error_dataset(data_dir):
     for filename in glob.iglob(data_dir+"/*clean.dat"):
@@ -149,7 +149,7 @@ def create_split_clean_dataset(data_dir):
             windows[i].tofile(output_filename)   # Save to binary format
 
 if __name__ == "__main__":
-    create_split_clean_dataset(sys.argv[1])
-    #create_split_error_dataset(sys.argv[1])
+    #create_split_clean_dataset(sys.argv[1])
+    create_split_error_dataset(sys.argv[1])
     #create_split_error_testset(sys.argv[1])
 

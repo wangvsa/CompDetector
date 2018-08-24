@@ -11,7 +11,8 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         clean_files = glob.glob(data_dir+"*/clean/*.dat*")
         error_files = glob.glob(data_dir+"*/error/*.out*")
         self.files = clean_files + error_files
-        self.labels = np.append(np.zeros(len(clean_files)), np.ones(len(error_files)))
+        self.clean_labels, self.error_labels = len(clean_files), len(error_files)
+        self.labels = np.append(np.zeros(self.clean_labels), np.ones(self.error_labels))
         self.batch_size = batch_size
 
     def __len__(self):
@@ -24,6 +25,11 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         for filename in batch_x:
             data.append(np.fromfile(filename, dtype=np.double).reshape(NX, NY, 1))
         return np.array(data), batch_y
+
+    def get_true_labels(self):
+        truth = [0] * (self.clean_labels/121) + [1] * (self.error_labels/121)
+        return np.array(truth)
+
 
 model = Sequential([
     Conv2D(46, (3,3), activation='relu', input_shape=(NX, NY, 1)),
@@ -54,16 +60,15 @@ def compute_metrics(pred_labels, true_labels):
     fn = np.sum(np.logical_and(pred_labels == 0, true_labels == 1))
 
     recall, fpr = tp / error_samples, fp / total
+    accuracy = (tp + tn) / total
     print 'TP: %s (%i/%i), FP: %s (%i/%i)' %(recall, tp, error_samples, fpr, fp, total)
-    print 'TN: %i, FN: %i' %(tn, fn)
+    print 'ACC: %s, TN: %i, FN: %i' %(accuracy, tn, fn)
 
 if __name__ == "__main__":
-    data_gen = FlashDatasetGenerator(sys.argv[1], 64)
-    '''
-    model.load_weights('model_keras.h5')
-    model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=20)
-    model.save_weights('model_keras.h5')
-    '''
+    data_gen = FlashDatasetGenerator(sys.argv[1], 128)
+    #model.load_weights('model_keras.h5')
+    #model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=10)
+    #model.save_weights('model_keras.h5')
 
     model.load_weights('model_keras.h5')
     #scores = model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8)
@@ -72,10 +77,9 @@ if __name__ == "__main__":
     print scores.shape
     scores = scores.reshape((len(scores)/121, 121))
     print scores.shape
-    scores = (scores >= 0.5)    # shape of (N, 121)
+    scores = (scores >= 0.8)    # shape of (N, 121)
     pred = np.any(scores, axis=1)
     print pred.shape
     print pred
-    truth = np.array([0]*1001+[1]*1001)
-    compute_metrics(pred, truth)
+    compute_metrics(pred, data_gen.get_true_labels())
 
