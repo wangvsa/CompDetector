@@ -3,7 +3,8 @@ from keras.layers import Dense, Dropout, Conv2D, Flatten, Activation, MaxPooling
 import keras
 import keras.backend as K
 import numpy as np
-import sys, glob
+import sys, glob, argparse
+
 
 NX, NY = 60, 60
 
@@ -31,7 +32,6 @@ class FlashDatasetGenerator(keras.utils.Sequence):
     def get_true_labels(self):
         truth = [0] * (self.clean_labels/121) + [1] * (self.error_labels/121)
         return np.array(truth)
-
 
 model = Sequential([
     Conv2D(64, (3,3), input_shape=(NX, NY, 1)),
@@ -66,27 +66,31 @@ def compute_metrics(pred_labels, true_labels):
     fp = np.sum(np.logical_and(pred_labels == 1, true_labels == 0))
     # False Negative (FN): we predict a label of 0 (negative), but the true label is 1.
     fn = np.sum(np.logical_and(pred_labels == 0, true_labels == 1))
-
     recall, fpr = tp / error_samples, fp / total
     accuracy = (tp + tn) / total
     print 'TP: %s (%i/%i), FP: %s (%i/%i)' %(recall, tp, error_samples, fpr, fp, total)
     print 'ACC: %s, TN: %i, FN: %i' %(accuracy, tn, fn)
 
 if __name__ == "__main__":
-    data_gen = FlashDatasetGenerator(sys.argv[1], 128)
-    #model.load_weights('model_keras.h5')
-    #model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=3)
-    #model.save_weights('model_keras.h5')
-    #test_gen = FlashDatasetGenerator(sys.argv[1], 128)
-    #print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
 
-    model.load_weights('model_keras.h5')
-    scores = model.predict_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
-    print scores.shape
-    scores = scores.reshape((len(scores)/121, 121))
-    print scores.shape
-    scores = (scores >= 0.6)    # shape of (N, 121)
-    pred = np.any(scores, axis=1)
-    print pred.shape
-    print pred
-    compute_metrics(pred, data_gen.get_true_labels())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-t", "--train_dataset", help="The path to the training set")
+    parser.add_argument("-e", "--test_dataset", help="The path to the test set")
+    args = parser.parse_args()
+
+    if args.train_dataset:
+        data_gen = FlashDatasetGenerator(args.train_dataset, 128)
+        model.load_weights('model_keras.h5')
+        model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=3)
+        model.save_weights('model_keras.h5')
+        #print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
+    elif args.test_dataset:
+        data_gen = FlashDatasetGenerator(args.test_dataset, 128)
+        model.load_weights('model_keras.h5')
+        scores = model.predict_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
+        scores = scores.reshape((len(scores)/121, 121))
+        for threshold in [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]:
+            print "Threshold =", threshold
+            pred = (scores >= threshold)    # shape of (N, 121)
+            pred = np.any(pred, axis=1)
+            compute_metrics(pred, data_gen.get_true_labels())
