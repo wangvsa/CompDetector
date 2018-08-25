@@ -6,7 +6,7 @@ import torch.nn as nn
 import alex
 from alex import FlashDataset, FlashNet
 
-BATCH_SIZE = 64
+BATCH_SIZE = 128
 USE_GPU = True
 
 def load_model(model_file):

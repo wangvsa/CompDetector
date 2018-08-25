@@ -1,6 +1,7 @@
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Conv2D, Flatten, Activation, MaxPooling2D
+from keras.layers import Dense, Dropout, Conv2D, Flatten, Activation, MaxPooling2D, BatchNormalization
 import keras
+import keras.backend as K
 import numpy as np
 import sys, glob
 
@@ -8,8 +9,8 @@ NX, NY = 60, 60
 
 class FlashDatasetGenerator(keras.utils.Sequence):
     def __init__(self, data_dir, batch_size):
-        clean_files = glob.glob(data_dir+"*/clean/*.dat*")
-        error_files = glob.glob(data_dir+"*/error/*.out*")
+        clean_files = glob.glob(data_dir+"/*/clean/*.dat*")
+        error_files = glob.glob(data_dir+"/*/error/*.out*")
         self.files = clean_files + error_files
         self.clean_labels, self.error_labels = len(clean_files), len(error_files)
         self.labels = np.append(np.zeros(self.clean_labels), np.ones(self.error_labels))
@@ -23,7 +24,8 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         batch_y = self.labels[idx*self.batch_size: (idx+1)*self.batch_size]
         data = []
         for filename in batch_x:
-            data.append(np.fromfile(filename, dtype=np.double).reshape(NX, NY, 1))
+            img = np.fromfile(filename, dtype=np.double).reshape(NX, NY, 1)
+            data.append(img)
         return np.array(data), batch_y
 
     def get_true_labels(self):
@@ -32,10 +34,16 @@ class FlashDatasetGenerator(keras.utils.Sequence):
 
 
 model = Sequential([
-    Conv2D(46, (3,3), activation='relu', input_shape=(NX, NY, 1)),
-    #Conv2D(32, (3, 3), activation='relu'),
-    MaxPooling2D(pool_size=(2, 2)),
+    Conv2D(64, (3,3), input_shape=(NX, NY, 1)),
+    #BatchNormalization(),
+    MaxPooling2D(pool_size=(3, 3)),
+    Activation('relu'),
     #Dropout(0.25),
+    Conv2D(64, (3,3), activation='relu'),
+    MaxPooling2D(pool_size=(3, 3)),
+    Conv2D(32, (3,3), activation='relu'),
+    MaxPooling2D(pool_size=(3, 3)),
+
     Flatten(),
     #Dense(256, activation='relu'),
     #Dropout(0.5),
@@ -67,19 +75,18 @@ def compute_metrics(pred_labels, true_labels):
 if __name__ == "__main__":
     data_gen = FlashDatasetGenerator(sys.argv[1], 128)
     #model.load_weights('model_keras.h5')
-    #model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=10)
+    #model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=3)
     #model.save_weights('model_keras.h5')
+    #test_gen = FlashDatasetGenerator(sys.argv[1], 128)
+    #print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
 
     model.load_weights('model_keras.h5')
-    #scores = model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8)
-    #print scores
     scores = model.predict_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
     print scores.shape
     scores = scores.reshape((len(scores)/121, 121))
     print scores.shape
-    scores = (scores >= 0.8)    # shape of (N, 121)
+    scores = (scores >= 0.6)    # shape of (N, 121)
     pred = np.any(scores, axis=1)
     print pred.shape
     print pred
     compute_metrics(pred, data_gen.get_true_labels())
-

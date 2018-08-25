@@ -150,6 +150,6 @@ def create_split_clean_dataset(data_dir):
 
 if __name__ == "__main__":
     #create_split_clean_dataset(sys.argv[1])
-    create_split_error_dataset(sys.argv[1])
-    #create_split_error_testset(sys.argv[1])
+    #create_split_error_dataset(sys.argv[1])
+    create_split_error_testset(sys.argv[1])
 
