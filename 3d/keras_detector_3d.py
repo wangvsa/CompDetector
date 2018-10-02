@@ -6,7 +6,8 @@ import numpy as np
 import sys, glob, argparse
 
 
-NX, NY = 16, 16, 16
+NX, NY, NZ = 16, 16, 16
+WINDOWS_PER_IMAGE = 128*128*128/16/16/16
 
 class FlashDatasetGenerator(keras.utils.Sequence):
     def __init__(self, data_dir, batch_size):
@@ -25,12 +26,12 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         batch_y = self.labels[idx*self.batch_size: (idx+1)*self.batch_size]
         data = []
         for filename in batch_x:
-            img = np.fromfile(filename, dtype=np.double).reshape(NX, NY, 1)
+            img = np.fromfile(filename, dtype=np.double).reshape(NX, NY, NY, 1)
             data.append(img)
         return np.array(data), batch_y
 
     def get_true_labels(self):
-        truth = [0] * (self.clean_labels/121) + [1] * (self.error_labels/121)
+        truth = [0] * (self.clean_labels/WINDOWS_PER_IMAGE) + [1] * (self.error_labels/WINDOWS_PER_IMAGE)
         return np.array(truth)
 
 model = Sequential([
