@@ -1,5 +1,6 @@
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Conv3D, Flatten, Activation, MaxPooling3D, BatchNormalization
+from keras.utils import multi_gpu_model
 import keras
 import keras.backend as K
 import numpy as np
@@ -33,8 +34,7 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         batch_y = self.labels[idx*self.batch_size: (idx+1)*self.batch_size]
         data = []
         for filename in batch_x:
-            #img = np.fromfile(filename, dtype=np.double).reshape(NX, NY, NZ, 1)
-            img = np.random.rand(NX, NY, NZ, 1)
+            img = np.fromfile(filename, dtype=np.double).reshape(NX, NY, NZ, 1)
             # if zero_propagation, insert an error to create the error data at runtime
             if self.zero_propagation and idx*self.batch_size >= len(self.files)/2:
                 # Insert an error
@@ -65,6 +65,10 @@ model = Sequential([
     Dense(1, activation='sigmoid')
 ])
 
+try:
+    model = multi_gpu_model(model)
+except:
+    pass
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
 def compute_metrics(pred_labels, true_labels):
@@ -94,7 +98,7 @@ if __name__ == "__main__":
     if args.train_dataset:
         data_gen = FlashDatasetGenerator(args.train_dataset, 64)
         #model.load_weights('model_keras.h5')
-        model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=1)
+        model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=3)
         model.save_weights('model_keras.h5')
         #print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
     elif args.test_dataset:
