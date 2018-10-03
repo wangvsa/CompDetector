@@ -26,9 +26,9 @@ def hdf5_to_numpy(filename, var_name="dens"):
     data = f[var_name][0]   # shape of NY, NY, NZ
     return data
 
-def get_flip_error(val):
+def get_flip_error(val, bits = 20):
     while True :
-        pos = random.randint(0, 20)
+        pos = random.randint(0, bits)
         error = bit_flip(val, pos)
         if not math.isnan(error) and not math.isinf(error):
             break
@@ -40,6 +40,12 @@ def split_to_windows(frame, rows, cols, overlap):
     step = cols - overlap
     windows = view_as_windows(frame, (rows, cols), step = step)
     return np.vstack(windows)
+
+def split_to_blocks(frame):
+    blocks = view_as_blocks(frame, (NX, NY, NZ))    # (8,8,8,16,16,16)
+    d = np.vstack(blocks)                           # (64,8,16,16,16)
+    d = np.vstack(d)                                # (512,16,16,16)
+    return d
 
 def create_error_file(filename):
     # 1. Read checkpoint hdf5 files
@@ -94,7 +100,7 @@ def create_error_dataset(data_dir):
 
 # Read from split_data directory
 # Read window by window and inject one error into each window
-def create_split_error_dataset(data_dir):
+def create_split_compressed_error_dataset(data_dir):
     for filename in glob.iglob(data_dir+"/*clean.dat"):
         # 1. Read clean data
         data = np.fromfile(filename, dtype=np.double).reshape(NX, NY)
@@ -141,14 +147,31 @@ def create_split_clean_dataset(data_dir, output_dir):
             data = np.fromfile(filename, dtype=np.double).reshape(480, 480)
         else:
             data = hdf5_to_numpy(filename)
-        windows = view_as_blocks(data, (NX, NY, NZ))
+        windows = split_to_blocks(data)
         for i in range(windows.shape[0]):
-            filename = filename.split("/")[1]
-            output_filename = output_dir + "/" + filename + "." + str(i) +".clean.dat"
+            tmp = filename.split("/")[-1]
+            output_filename = output_dir + "/" + tmp + "." + str(i) +".clean.dat"
             windows[i].tofile(output_filename)   # Save to binary format
 
+# Read from clean numpy data files and ouput error data files
+def create_split_error_dataset(data_dir, output_dir):
+    for filename in glob.iglob(data_dir+"*.dat"):
+        print filename
+        data = np.fromfile(filename, dtype=np.double).reshape(NX, NY, NZ)
+
+        # Insert an error
+        x, y, z = random.randint(1, data.shape[0])-1, \
+                    random.randint(1, data.shape[1])-1, random.randint(1, data.shape[2])-1
+        data[x, y, z] = get_flip_error(data[x, y, z], 15)
+        tmp = filename.split("/")[-1]
+        tmp = tmp.replace("clean", "error")
+        output_filename = output_dir + "/" + tmp
+        data.tofile(output_filename)   # Save to binary format
+
 if __name__ == "__main__":
-    create_split_clean_dataset(sys.argv[1], sys.argv[2])
-    #create_split_error_dataset(sys.argv[1])
+    input_dir = sys.argv[1]
+    output_dir = sys.argv[2]
+    #create_split_clean_dataset(input_dir, output_dir)
+    create_split_error_dataset(input_dir, output_dir)
     #create_split_error_testset(sys.argv[1])
 
