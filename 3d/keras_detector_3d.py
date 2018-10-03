@@ -3,16 +3,22 @@ from keras.layers import Dense, Dropout, Conv3D, Flatten, Activation, MaxPooling
 import keras
 import keras.backend as K
 import numpy as np
-import sys, glob, argparse
+import sys, glob, argparse, random
+from create_dataset import get_flip_error
 
 
 NX, NY, NZ = 16, 16, 16
 WINDOWS_PER_IMAGE = 128*128*128/NX/NY/NZ
 
 class FlashDatasetGenerator(keras.utils.Sequence):
-    def __init__(self, data_dir, batch_size):
+    def __init__(self, data_dir, batch_size, zero_propagation=True):
+        self.zero_propagation = zero_propagation
         clean_files = glob.glob(data_dir+"/*/clean/*.dat*")
-        error_files = glob.glob(data_dir+"/*/error/*.dat*")
+        # if zero_propagation, create 0-propagation error dataset at runtime
+        if zero_propagation:
+            error_files = glob.glob(data_dir+"/*/clean/*.dat*")
+        else:
+            error_files = glob.glob(data_dir+"/*/error/*.dat*")
         self.files = clean_files + error_files
         self.clean_labels, self.error_labels = len(clean_files), len(error_files)
         print "clean files:", self.clean_labels, ", error files:", self.error_labels
@@ -28,7 +34,13 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         data = []
         for filename in batch_x:
             #img = np.fromfile(filename, dtype=np.double).reshape(NX, NY, NZ, 1)
-            img = np.random.rand(NX,NY,NZ,1)
+            img = np.random.rand(NX, NY, NZ, 1)
+            # if zero_propagation, insert an error to create the error data at runtime
+            if self.zero_propagation and idx*self.batch_size >= len(self.files)/2:
+                # Insert an error
+                x, y, z = random.randint(1, img.shape[0])-1, \
+                            random.randint(1, img.shape[1])-1, random.randint(1, img.shape[2])-1
+                img[x, y, z] = get_flip_error(img[x, y, z], 20)
             data.append(img)
         return np.array(data), batch_y
 
