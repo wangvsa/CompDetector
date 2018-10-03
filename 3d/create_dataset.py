@@ -156,7 +156,7 @@ def create_split_clean_dataset(data_dir, output_dir):
         for i in range(blocks.shape[0]):
             tmp = filename.split("/")[-1]
             output_filename = output_dir + "/" + tmp + "." + str(i) +".clean.dat"
-            windows[i].tofile(output_filename)   # Save to binary format
+            blocks[i].tofile(output_filename)   # Save to binary format
 
 # Read from clean numpy data files and ouput error data files
 def create_split_error_dataset(data_dir, output_dir):
