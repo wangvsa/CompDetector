@@ -7,14 +7,15 @@ import sys, glob, argparse
 
 
 NX, NY, NZ = 16, 16, 16
-WINDOWS_PER_IMAGE = 128*128*128/16/16/16
+WINDOWS_PER_IMAGE = 128*128*128/NX/NY/NZ
 
 class FlashDatasetGenerator(keras.utils.Sequence):
     def __init__(self, data_dir, batch_size):
         clean_files = glob.glob(data_dir+"/*/clean/*.dat*")
-        error_files = glob.glob(data_dir+"/*/error/*.out*")
+        error_files = glob.glob(data_dir+"/*/error/*.dat*")
         self.files = clean_files + error_files
         self.clean_labels, self.error_labels = len(clean_files), len(error_files)
+        print "clean files:", self.clean_labels, ", error files:", self.error_labels
         self.labels = np.append(np.zeros(self.clean_labels), np.ones(self.error_labels))
         self.batch_size = batch_size
 
@@ -26,7 +27,8 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         batch_y = self.labels[idx*self.batch_size: (idx+1)*self.batch_size]
         data = []
         for filename in batch_x:
-            img = np.fromfile(filename, dtype=np.double).reshape(NX, NY, NY, 1)
+            #img = np.fromfile(filename, dtype=np.double).reshape(NX, NY, NZ, 1)
+            img = np.random.rand(NX,NY,NZ,1)
             data.append(img)
         return np.array(data), batch_y
 
@@ -79,17 +81,17 @@ if __name__ == "__main__":
 
     if args.train_dataset:
         data_gen = FlashDatasetGenerator(args.train_dataset, 64)
-        model.load_weights('model_keras.h5')
-        model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=3)
+        #model.load_weights('model_keras.h5')
+        model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=1)
         model.save_weights('model_keras.h5')
         #print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
     elif args.test_dataset:
         data_gen = FlashDatasetGenerator(args.test_dataset, 128)
         model.load_weights('model_keras.h5')
         scores = model.predict_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
-        scores = scores.reshape((len(scores)/121, 121))
+        scores = scores.reshape((len(scores)/WINDOWS_PER_IMAGE, WINDOWS_PER_IMAGE))
         for threshold in [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]:
             print "Threshold =", threshold
-            pred = (scores >= threshold)    # shape of (N, 121)
+            pred = (scores >= threshold)    # shape of (N, WINDOWS_PER_IMAGE)
             pred = np.any(pred, axis=1)
             compute_metrics(pred, data_gen.get_true_labels())
