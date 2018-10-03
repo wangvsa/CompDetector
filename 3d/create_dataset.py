@@ -143,12 +143,17 @@ def create_split_error_testset(data_dir):
 def create_split_clean_dataset(data_dir, output_dir):
     for filename in glob.iglob(data_dir+"/*hdf5_chk_*"):
         print filename
-        if ".dat" in filename:
-            data = np.fromfile(filename, dtype=np.double).reshape(480, 480)
-        else:
-            data = hdf5_to_numpy(filename)
-        windows = split_to_blocks(data)
-        for i in range(windows.shape[0]):
+        dens = hdf5_to_numpy(filename, "dens")
+        pres = hdf5_to_numpy(filename, "pres")
+        temp = hdf5_to_numpy(filename, "temp")
+
+        dens_blocks = split_to_blocks(dens)
+        pres_blocks = split_to_blocks(pres)
+        temp_blocks = split_to_blocks(temp)
+
+        # -> (512, NX, NY, NZ, 3)
+        blocks = np.stack((dens_blocks, pres_blocks, temp_blocks), -1)
+        for i in range(blocks.shape[0]):
             tmp = filename.split("/")[-1]
             output_filename = output_dir + "/" + tmp + "." + str(i) +".clean.dat"
             windows[i].tofile(output_filename)   # Save to binary format
@@ -171,7 +176,7 @@ def create_split_error_dataset(data_dir, output_dir):
 if __name__ == "__main__":
     input_dir = sys.argv[1]
     output_dir = sys.argv[2]
-    #create_split_clean_dataset(input_dir, output_dir)
-    create_split_error_dataset(input_dir, output_dir)
+    create_split_clean_dataset(input_dir, output_dir)
+    #create_split_error_dataset(input_dir, output_dir)
     #create_split_error_testset(sys.argv[1])
 

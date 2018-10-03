@@ -10,6 +10,7 @@ from create_dataset import get_flip_error
 
 NX, NY, NZ = 16, 16, 16
 WINDOWS_PER_IMAGE = 128*128*128/NX/NY/NZ
+variables = ["dens", "pres", "temp"]
 
 class FlashDatasetGenerator(keras.utils.Sequence):
     def __init__(self, data_dir, batch_size, zero_propagation=True):
@@ -34,13 +35,13 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         batch_y = self.labels[idx*self.batch_size: (idx+1)*self.batch_size]
         data = []
         for filename in batch_x:
-            img = np.fromfile(filename, dtype=np.double).reshape(NX, NY, NZ, 1)
+            img = np.fromfile(filename, dtype=np.double).reshape(NX, NY, NZ, len(variables))
             # if zero_propagation, insert an error to create the error data at runtime
             if self.zero_propagation and idx*self.batch_size >= len(self.files)/2:
                 # Insert an error
-                x, y, z = random.randint(1, img.shape[0])-1, \
-                            random.randint(1, img.shape[1])-1, random.randint(1, img.shape[2])-1
-                img[x, y, z] = get_flip_error(img[x, y, z], 20)
+                x, y, z, v = random.randint(0, img.shape[0]-1), random.randint(0, img.shape[1]-1),\
+                            random.randint(0, img.shape[2]-1), random.randint(0, len(variables)-1)
+                img[x, y, z, v] = get_flip_error(img[x, y, z, v], 20)
             data.append(img)
         return np.array(data), batch_y
 
@@ -49,7 +50,7 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         return np.array(truth)
 
 model = Sequential([
-    Conv3D(64, (2,2,2), input_shape=(NX, NY, NZ, 1)),
+    Conv3D(64, (2,2,2), input_shape=(NX, NY, NZ, len(variables))),
     #BatchNormalization(),
     MaxPooling3D(pool_size=(2, 2, 2)),
     Activation('relu'),
