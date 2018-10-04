@@ -11,6 +11,7 @@ from create_dataset import get_flip_error
 NX, NY, NZ = 16, 16, 16
 WINDOWS_PER_IMAGE = 128*128*128/NX/NY/NZ
 variables = ["dens", "pres", "temp"]
+EPOCHS = 3
 
 class FlashDatasetGenerator(keras.utils.Sequence):
     def __init__(self, data_dir, batch_size, zero_propagation=True):
@@ -94,12 +95,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", "--train_dataset", help="The path to the training set")
     parser.add_argument("-e", "--test_dataset", help="The path to the test set")
+    parser.add_argument("-n", "--epochs", help="How many epochs for training")
     args = parser.parse_args()
 
     if args.train_dataset:
+        if args.epochs:
+            EPOCHS = int(args.epochs)
+            print EPOCHS
         data_gen = FlashDatasetGenerator(args.train_dataset, 64)
         #model.load_weights('model_keras.h5')
-        model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=3)
+        model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=EPOCHS)
         model.save_weights('model_keras.h5')
         #print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
     elif args.test_dataset:
