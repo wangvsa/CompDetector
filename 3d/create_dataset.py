@@ -141,7 +141,9 @@ def create_split_error_testset(data_dir):
 
 # Read from FLASH directory(hdf5 files) or unsplit_data directory(binary files)
 def create_split_clean_dataset(data_dir, output_dir):
-    for filename in glob.iglob(data_dir+"/*hdf5_chk_*"):
+    file_list = glob.iglob(data_dir+"/*plt_cnt_*")
+    file_list.sort()
+    for filename in file_list:
         print filename
         dens = hdf5_to_numpy(filename, "dens")
         pres = hdf5_to_numpy(filename, "pres")
