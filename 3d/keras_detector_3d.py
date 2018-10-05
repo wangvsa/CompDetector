@@ -14,7 +14,7 @@ variables = ["dens", "pres", "temp"]
 EPOCHS = 3
 
 class FlashDatasetGenerator(keras.utils.Sequence):
-    def __init__(self, data_dir, batch_size, zero_propagation=True):
+    def __init__(self, data_dir, batch_size, zero_propagation=True, testing=False):
         self.zero_propagation = zero_propagation
         clean_files = glob.glob(data_dir+"/*/clean/*.dat*")
         # if zero_propagation, create 0-propagation error dataset at runtime
@@ -28,25 +28,43 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         self.labels = np.append(np.zeros(self.clean_labels), np.ones(self.error_labels))
         self.batch_size = batch_size
 
+        # When testing, first determine which window has error
+        # only one window in an image has an error
+        self.testing = testing
+        self.error_blocks = np.random.randint(WINDOWS_PER_IMAGE, size=self.error_labels)
+        self.count = 0
+
     def __len__(self):
         return np.ceil(len(self.files) / float(self.batch_size))
 
     def __getitem__(self, idx):
-        batch_x = self.files[idx*self.batch_size: (idx+1)*self.batch_size]
         batch_y = self.labels[idx*self.batch_size: (idx+1)*self.batch_size]
-        data = []
-        for filename in batch_x:
+        batch_x = []
+        for file_index in range(idx*self.batch_size, (idx+1)*self.batch_size):
+            filename = self.files[file_index]
             img = np.fromfile(filename, dtype=np.double).reshape(NX, NY, NZ, len(variables))
             # if zero_propagation, insert an error to create the error data at runtime
-            if self.zero_propagation and idx*self.batch_size >= len(self.files)/2:
-                # Insert an error
-                x, y, z, v = random.randint(0, img.shape[0]-1), random.randint(0, img.shape[1]-1),\
-                            random.randint(0, img.shape[2]-1), random.randint(0, len(variables)-1)
-                img[x, y, z, v] = get_flip_error(img[x, y, z, v], 20)
-            data.append(img)
-        return np.array(data), batch_y
+            if self.zero_propagation:
+                if self.testing :   # testing, only one block in an image has an error
+                    timestep = file_index / WINDOWS_PER_IMAGE
+                    if file_index >= self.clean_labels and file_index % WINDOWS_PER_IMAGE == self.error_blocks[timestep]:
+                        self.count += 1
+                        print timestep, self.error_blocks[timestep]
+                        # Insert an error
+                        x, y, z, v = random.randint(0, img.shape[0]-1), random.randint(0, img.shape[1]-1),\
+                                    random.randint(0, img.shape[2]-1), random.randint(0, len(variables)-1)
+                        img[x, y, z, v] = get_flip_error(img[x, y, z, v], 15)
+                else:               # training, then all blocks in an image has an error
+                    if file_index >= self.clean_labels:
+                        # Insert an error
+                        x, y, z, v = random.randint(0, img.shape[0]-1), random.randint(0, img.shape[1]-1),\
+                                    random.randint(0, img.shape[2]-1), random.randint(0, len(variables)-1)
+                        img[x, y, z, v] = get_flip_error(img[x, y, z, v], 20)
+            batch_x.append(img)
+        return np.array(batch_x), batch_y
 
     def get_true_labels(self):
+        print "count:", self.count
         truth = [0] * (self.clean_labels/WINDOWS_PER_IMAGE) + [1] * (self.error_labels/WINDOWS_PER_IMAGE)
         return np.array(truth)
 
@@ -99,16 +117,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.train_dataset:
-        if args.epochs:
-            EPOCHS = int(args.epochs)
-            print EPOCHS
-        data_gen = FlashDatasetGenerator(args.train_dataset, 64)
-        #model.load_weights('model_keras.h5')
+        if args.epochs: EPOCHS = int(args.epochs)
+        data_gen = FlashDatasetGenerator(args.train_dataset, 128)
+        model.load_weights('model_keras.h5')
         model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=EPOCHS)
         model.save_weights('model_keras.h5')
         #print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
     elif args.test_dataset:
-        data_gen = FlashDatasetGenerator(args.test_dataset, 128)
+        data_gen = FlashDatasetGenerator(args.test_dataset, 128, testing=True)
         model.load_weights('model_keras.h5')
         scores = model.predict_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
         scores = scores.reshape((len(scores)/WINDOWS_PER_IMAGE, WINDOWS_PER_IMAGE))
