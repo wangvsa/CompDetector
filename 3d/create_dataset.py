@@ -164,12 +164,12 @@ def create_split_clean_dataset(data_dir, output_dir):
 def create_split_error_dataset(data_dir, output_dir):
     for filename in glob.iglob(data_dir+"*.dat"):
         print filename
-        data = np.fromfile(filename, dtype=np.double).reshape(NX, NY, NZ)
+        data = np.fromfile(filename, dtype=np.double).reshape(NX, NY, NZ, 3)
 
         # Insert an error
-        x, y, z = random.randint(1, data.shape[0])-1, \
-                    random.randint(1, data.shape[1])-1, random.randint(1, data.shape[2])-1
-        data[x, y, z] = get_flip_error(data[x, y, z], 15)
+        x, y, z, var = random.randint(1, data.shape[0])-1, random.randint(1, data.shape[1])-1, \
+                        random.randint(1, data.shape[2])-1, random.randint(0, 2)
+        data[x, y, z, var] = get_flip_error(data[x, y, z, var], 20)
         tmp = filename.split("/")[-1]
         tmp = tmp.replace("clean", "error")
         output_filename = output_dir + "/" + tmp
@@ -178,7 +178,7 @@ def create_split_error_dataset(data_dir, output_dir):
 if __name__ == "__main__":
     input_dir = sys.argv[1]
     output_dir = sys.argv[2]
-    create_split_clean_dataset(input_dir, output_dir)
-    #create_split_error_dataset(input_dir, output_dir)
+    #create_split_clean_dataset(input_dir, output_dir)
+    create_split_error_dataset(input_dir, output_dir)
     #create_split_error_testset(sys.argv[1])
 

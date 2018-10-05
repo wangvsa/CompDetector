@@ -32,7 +32,6 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         # only one window in an image has an error
         self.testing = testing
         self.error_blocks = np.random.randint(WINDOWS_PER_IMAGE, size=self.error_labels)
-        self.count = 0
 
     def __len__(self):
         return np.ceil(len(self.files) / float(self.batch_size))
@@ -48,8 +47,7 @@ class FlashDatasetGenerator(keras.utils.Sequence):
                 if self.testing :   # testing, only one block in an image has an error
                     timestep = file_index / WINDOWS_PER_IMAGE
                     if file_index >= self.clean_labels and file_index % WINDOWS_PER_IMAGE == self.error_blocks[timestep]:
-                        self.count += 1
-                        print timestep, self.error_blocks[timestep]
+                        #print timestep, self.error_blocks[timestep]
                         # Insert an error
                         x, y, z, v = random.randint(0, img.shape[0]-1), random.randint(0, img.shape[1]-1),\
                                     random.randint(0, img.shape[2]-1), random.randint(0, len(variables)-1)
@@ -59,12 +57,11 @@ class FlashDatasetGenerator(keras.utils.Sequence):
                         # Insert an error
                         x, y, z, v = random.randint(0, img.shape[0]-1), random.randint(0, img.shape[1]-1),\
                                     random.randint(0, img.shape[2]-1), random.randint(0, len(variables)-1)
-                        img[x, y, z, v] = get_flip_error(img[x, y, z, v], 20)
+                        img[x, y, z, v] = get_flip_error(img[x, y, z, v], 15)
             batch_x.append(img)
         return np.array(batch_x), batch_y
 
     def get_true_labels(self):
-        print "count:", self.count
         truth = [0] * (self.clean_labels/WINDOWS_PER_IMAGE) + [1] * (self.error_labels/WINDOWS_PER_IMAGE)
         return np.array(truth)
 
