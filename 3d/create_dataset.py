@@ -162,7 +162,9 @@ def create_split_clean_dataset(data_dir, output_dir):
 
 # Read from clean numpy data files and ouput error data files
 def create_split_error_dataset(data_dir, output_dir):
-    for filename in glob.iglob(data_dir+"*.dat"):
+    file_list = glob.glob(data_dir+"*.dat")
+    file_list.sort()
+    for filename in file_list:
         print filename
         data = np.fromfile(filename, dtype=np.double).reshape(NX, NY, NZ, 3)
 
