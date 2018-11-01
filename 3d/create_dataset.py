@@ -3,7 +3,7 @@ import bitstring, math
 import numpy as np
 import glob
 from skimage.util.shape import view_as_windows, view_as_blocks
-NX, NY, NZ = 16, 16, 16
+NX, NY, NZ = 16, 16, 8
 
 # See the difference of clean data and decompressed data with one error
 def test_sz(origin_file, decompressed_file):
@@ -23,7 +23,8 @@ def bit_flip(val, pos):
 # Read hdf5 file, return an array shape of (NX, NY, NZ)
 def hdf5_to_numpy(filename, var_name="dens"):
     f = h5py.File(filename, 'r')
-    data = f[var_name][0]   # shape of NY, NY, NZ
+    data = f[var_name][0]   # shape of NZ, NY, NX
+    data = np.swapaxes(data, 0, 2)  # swap NZ, NX axes -> NX, NY, NZ
     return data
 
 def get_flip_error(val, bits = 20):
@@ -157,8 +158,8 @@ def create_split_clean_dataset(data_dir, output_dir):
         blocks = np.stack((dens_blocks, pres_blocks, temp_blocks), -1)
         for i in range(blocks.shape[0]):
             tmp = filename.split("/")[-1]
-            output_filename = output_dir + "/" + tmp + "." + str(i) +".clean.dat"
-            blocks[i].tofile(output_filename)   # Save to binary format
+            output_filename = output_dir + "/" + tmp + "." + str(i) +".clean.npy"
+            np.save(output_filename, blocks[i])
 
 # Read from clean numpy data files and ouput error data files
 def create_split_error_dataset(data_dir, output_dir):
@@ -180,7 +181,7 @@ def create_split_error_dataset(data_dir, output_dir):
 if __name__ == "__main__":
     input_dir = sys.argv[1]
     output_dir = sys.argv[2]
-    #create_split_clean_dataset(input_dir, output_dir)
-    create_split_error_dataset(input_dir, output_dir)
+    create_split_clean_dataset(input_dir, output_dir)
+    #create_split_error_dataset(input_dir, output_dir)
     #create_split_error_testset(sys.argv[1])
 
