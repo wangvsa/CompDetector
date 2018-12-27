@@ -10,18 +10,19 @@ from create_dataset import get_flip_error
 
 NX, NY, NZ = 16, 16, 16
 WINDOWS_PER_IMAGE = 128*128*128/NX/NY/NZ
-variables = ["dens", "pres", "temp"]
+#variables = ["dens", "pres", "temp"]
+variables = ["dens"]
 EPOCHS = 3
 
 class FlashDatasetGenerator(keras.utils.Sequence):
     def __init__(self, data_dir, batch_size, zero_propagation=True, testing=False):
         self.zero_propagation = zero_propagation
-        clean_files = glob.glob(data_dir+"/*/clean/*.dat*")
+        clean_files = glob.glob(data_dir+"/*/clean/*")
         # if zero_propagation, create 0-propagation error dataset at runtime
         if zero_propagation:
-            error_files = glob.glob(data_dir+"/*/clean/*.dat*")
+            error_files = list(clean_files)
         else:
-            error_files = glob.glob(data_dir+"/*/error/*.dat*")
+            error_files = glob.glob(data_dir+"/*/error/*")
         self.files = clean_files + error_files
         self.clean_labels, self.error_labels = len(clean_files), len(error_files)
         print "clean files:", self.clean_labels, ", error files:", self.error_labels
@@ -31,7 +32,7 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         # When testing, first determine which window has error
         # only one window in an image has an error
         self.testing = testing
-        self.error_blocks = np.random.randint(WINDOWS_PER_IMAGE, size=self.error_labels)
+        self.error_blocks = np.random.randint(WINDOWS_PER_IMAGE, size=self.error_labels/WINDOWS_PER_IMAGE)
 
     def __len__(self):
         return np.ceil(len(self.files) / float(self.batch_size))
@@ -40,24 +41,28 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         batch_y = self.labels[idx*self.batch_size: (idx+1)*self.batch_size]
         batch_x = []
         for file_index in range(idx*self.batch_size, (idx+1)*self.batch_size):
-            filename = self.files[file_index]
-            img = np.fromfile(filename, dtype=np.double).reshape(NX, NY, NZ, len(variables))
+            #img = np.load(self.files[file_index])
+            #img = img.reshape((NX,NY,NZ,1))
+            img = np.fromfile(self.files[file_index], dtype=np.float64).reshape((NX,NY,NZ,3))[:,:,:,0:1]
             # if zero_propagation, insert an error to create the error data at runtime
             if self.zero_propagation:
                 if self.testing :   # testing, only one block in an image has an error
-                    timestep = file_index / WINDOWS_PER_IMAGE
-                    if file_index >= self.clean_labels and file_index % WINDOWS_PER_IMAGE == self.error_blocks[timestep]:
-                        #print timestep, self.error_blocks[timestep]
+                    timestep = (file_index - self.clean_labels) / WINDOWS_PER_IMAGE
+                    if (file_index >= self.clean_labels) and (file_index % WINDOWS_PER_IMAGE == self.error_blocks[timestep]):
                         # Insert an error
                         x, y, z, v = random.randint(0, img.shape[0]-1), random.randint(0, img.shape[1]-1),\
-                                    random.randint(0, img.shape[2]-1), random.randint(0, len(variables)-1)
+                                    random.randint(0, img.shape[2]-1), random.randint(0, img.shape[3]-1)
                         img[x, y, z, v] = get_flip_error(img[x, y, z, v], 15)
                 else:               # training, then all blocks in an image has an error
                     if file_index >= self.clean_labels:
                         # Insert an error
-                        x, y, z, v = random.randint(0, img.shape[0]-1), random.randint(0, img.shape[1]-1),\
-                                    random.randint(0, img.shape[2]-1), random.randint(0, len(variables)-1)
+                        x, y, z, v = random.randint(1, img.shape[0]-2), random.randint(1, img.shape[1]-2),\
+                                    random.randint(1, img.shape[2]-2), random.randint(0, img.shape[3]-1)
                         img[x, y, z, v] = get_flip_error(img[x, y, z, v], 15)
+            # Normalization
+            #img_min = np.min(img)
+            #img_max = np.max(img)
+            #img = (img - img_min) / (img_max - img+1e-15)
             batch_x.append(img)
         return np.array(batch_x), batch_y
 
@@ -66,19 +71,16 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         return np.array(truth)
 
 model = Sequential([
-    Conv3D(64, (2,2,2), input_shape=(NX, NY, NZ, len(variables))),
+    Conv3D(32, (3,3,1), input_shape=(NX, NY, NZ, len(variables))),
     #BatchNormalization(),
-    MaxPooling3D(pool_size=(2, 2, 2)),
     Activation('relu'),
-    #Dropout(0.25),
-    Conv3D(64, (2,2,2), activation='relu'),
-    MaxPooling3D(pool_size=(2,2,2)),
-    Conv3D(32, (2,2,2), activation='relu'),
-    MaxPooling3D(pool_size=(2,2,2)),
-
+    #MaxPooling3D(pool_size=(3, 3, 3)),
+    Conv3D(32, (3,1,3), activation='relu'),
+    #MaxPooling3D(pool_size=(3, 3, 1)),
+    Conv3D(32, (1,3,3), activation='relu'),
+    MaxPooling3D(pool_size=(1, 3, 3)),
     Flatten(),
-    #Dense(256, activation='relu'),
-    #Dropout(0.5),
+    Dropout(0.25),
     Dense(1, activation='sigmoid')
 ])
 
@@ -86,7 +88,9 @@ try:
     model = multi_gpu_model(model)
 except:
     pass
-model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+#adam = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=1e-3, amsgrad=False)
+model.compile(optimizer="adam", loss='binary_crossentropy', metrics=['accuracy'])
 
 def compute_metrics(pred_labels, true_labels):
     clean_samples = np.sum(true_labels == 0) * 1.0
@@ -115,9 +119,9 @@ if __name__ == "__main__":
 
     if args.train_dataset:
         if args.epochs: EPOCHS = int(args.epochs)
-        data_gen = FlashDatasetGenerator(args.train_dataset, 128)
-        model.load_weights('model_keras.h5')
-        model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=EPOCHS)
+        data_gen = FlashDatasetGenerator(args.train_dataset, 128, zero_propagation=True, testing=False)
+        #model.load_weights('model_keras.h5')
+        model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=EPOCHS, shuffle=True)
         model.save_weights('model_keras.h5')
         #print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
     elif args.test_dataset:
@@ -125,8 +129,10 @@ if __name__ == "__main__":
         model.load_weights('model_keras.h5')
         scores = model.predict_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
         scores = scores.reshape((len(scores)/WINDOWS_PER_IMAGE, WINDOWS_PER_IMAGE))
-        for threshold in [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]:
+        for threshold in [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 0.99]:
             print "Threshold =", threshold
             pred = (scores >= threshold)    # shape of (N, WINDOWS_PER_IMAGE)
+            print np.sum(pred)
             pred = np.any(pred, axis=1)
+            print np.sum(pred)
             compute_metrics(pred, data_gen.get_true_labels())

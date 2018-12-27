@@ -6,7 +6,7 @@ import torch.nn as nn
 import alex
 from alex import FlashDataset, FlashNet
 
-BATCH_SIZE = 128
+BATCH_SIZE = 256
 USE_GPU = True
 
 def load_model(model_file):
@@ -43,4 +43,4 @@ if __name__ == "__main__":
     torch.save(model, model_file)
 
     # Testing
-    alex.evaluating(model, train_loader, use_gpu=USE_GPU)
+    #alex.evaluating(model, train_loader, use_gpu=USE_GPU)

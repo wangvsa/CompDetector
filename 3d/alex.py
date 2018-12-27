@@ -9,10 +9,10 @@ import random
 import argparse
 from create_dataset import get_flip_error
 
-BATCH_SIZE = 128
-variables = ['dens', 'temp', 'pres']
+BATCH_SIZE = 256
+variables = ['dens']
 NX, NY, NZ = 16, 16, 16
-CONV_INPUT_SHAPE = (1, NX, NY, NZ)
+CONV_INPUT_SHAPE = (len(variables), NX, NY, NZ)
 
 
 class FlashDataset(torch.utils.data.Dataset):
@@ -44,37 +44,43 @@ class FlashDataset(torch.utils.data.Dataset):
         f = filename
         if "error" in filename:
             f = filename.replace("error", "clean")
-            data = np.fromfile(f, dtype=np.double).reshape(len(variables), NX, NY, NZ)
-            data = data[0].reshape(1, NX, NY, NZ)
-            x, y, z = random.randint(0, NX-1), random.randint(0, NY-1), random.randint(0, NZ-1)
-            data[0,x,y,z] = get_flip_error(data[0,x,y,z], 10) #10*data[0,x,y,z]
+            data = np.fromfile(f, dtype=np.double).reshape(NX, NY, NZ, 3)[:,:,:,1:2]
+            #data = np.load(f)
+            data = data.reshape(1, NX, NY, NZ)
+            x, y, z = random.randint(1, NX-2), random.randint(1, NY-2), random.randint(1, NZ-2)
+            data[0,x,y,z] = get_flip_error(data[0,x,y,z], 15, 0.1) #10*data[0,x,y,z]
         else:
-            data = np.fromfile(f, dtype=np.double).reshape(len(variables), NX, NY, NZ)
-            data = data[0].reshape(1, NX, NY, NZ)
+            data = np.fromfile(f, dtype=np.double).reshape(NX, NY, NZ, 3)[:,:,:,1:2]
+            #data = np.load(f)
+            data = data.reshape(1, NX, NY, NZ)
         return torch.from_numpy(data)
 
 class FlashNet(nn.Module):
     def __init__(self):
         super(FlashNet, self).__init__()
         self.conv = nn.Sequential(
-            nn.Conv3d(1, 32, 2),
-            nn.BatchNorm3d(32),
+            nn.Conv3d(1, 32, 3),
             nn.ReLU(),
+            nn.BatchNorm3d(32),
             #nn.MaxPool3d(2),
-            nn.Conv3d(32, 32, 2),
+            nn.Conv3d(32, 32, 3),
             #nn.BatchNorm3d(32),
             nn.ReLU(),
+            nn.Conv3d(32, 32, 3),
+            #nn.BatchNorm3d(32),
+            nn.ReLU(),
+            nn.MaxPool3d(3),
         )
         conv_output_size = self.get_conv_output_size()
         print "conv output size: ", conv_output_size
         self.fc = nn.Sequential(
-            nn.Linear(in_features=conv_output_size, out_features=1024, bias=True),
-            nn.ReLU(),
-            nn.Dropout(p=0.2),
-            nn.Linear(1024, 512),
-            nn.ReLU(),
-            nn.Dropout(p=0.2),
-            nn.Linear(512, 1),
+            nn.Linear(in_features=conv_output_size, out_features=1, bias=True),
+            #nn.ReLU(),
+            #nn.Dropout(p=0.2),
+            #nn.Linear(1024, 512),
+            #nn.ReLU(),
+            #nn.Dropout(p=0.2),
+            #nn.Linear(512, 1),
             nn.Sigmoid()
         )
     def forward(self, x):
@@ -133,13 +139,14 @@ def evaluating(model, test_loader, use_gpu=True):
         false_positive += ((pred^truth) & pred).sum()
         false_negative += ((pred^truth) & truth).sum()
 
-        if i % 50 == 0:
+        if i % 100 == 0:
             print i, num_correct, false_positive, false_negative
         del output
         del inputs
         del labels
 
 
+    print num_correct, true_positive, false_positive, false_negative
     acc = num_correct / len(test_loader.dataset)
     recall = true_positive / (true_positive+false_negative)
     fp = false_positive / len(test_loader.dataset)

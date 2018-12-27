@@ -3,7 +3,7 @@ import bitstring, math
 import numpy as np
 import glob
 from skimage.util.shape import view_as_windows, view_as_blocks
-NX, NY, NZ = 16, 16, 8
+NX, NY, NZ = 32, 32, 32
 
 # See the difference of clean data and decompressed data with one error
 def test_sz(origin_file, decompressed_file):
@@ -27,12 +27,13 @@ def hdf5_to_numpy(filename, var_name="dens"):
     data = np.swapaxes(data, 0, 2)  # swap NZ, NX axes -> NX, NY, NZ
     return data
 
-def get_flip_error(val, bits = 20):
+def get_flip_error(val, bits = 20, threshold = None):
     while True :
         pos = random.randint(0, bits)
         error = bit_flip(val, pos)
         if not math.isnan(error) and not math.isinf(error):
-            break
+            if threshold is None or abs(error-val) > threshold:
+                break
     error = min(10e+3, error)
     error = max(-10e+3, error)
     return error
@@ -143,19 +144,21 @@ def create_split_error_testset(data_dir):
 # Read from FLASH directory(hdf5 files) or unsplit_data directory(binary files)
 def create_split_clean_dataset(data_dir, output_dir):
     file_list = glob.glob(data_dir+"/*plt_cnt_*")
+    #file_list = glob.glob(data_dir+"/*chk*")
     file_list.sort()
     for filename in file_list:
-        print filename
         dens = hdf5_to_numpy(filename, "dens")
         pres = hdf5_to_numpy(filename, "pres")
         temp = hdf5_to_numpy(filename, "temp")
 
-        dens_blocks = split_to_blocks(dens)
-        pres_blocks = split_to_blocks(pres)
-        temp_blocks = split_to_blocks(temp)
+        dens_blocks = np.squeeze(split_to_blocks(dens))
+        pres_blocks = np.squeeze(split_to_blocks(pres))
+        temp_blocks = np.squeeze(split_to_blocks(temp))
 
         # -> (512, NX, NY, NZ, 3)
-        blocks = np.stack((dens_blocks, pres_blocks, temp_blocks), -1)
+        #blocks = np.stack((dens_blocks, pres_blocks, temp_blocks), -1)
+        blocks = np.expand_dims(dens_blocks, -1)
+        print filename, blocks.shape
         for i in range(blocks.shape[0]):
             tmp = filename.split("/")[-1]
             output_filename = output_dir + "/" + tmp + "." + str(i) +".clean.npy"
@@ -163,20 +166,22 @@ def create_split_clean_dataset(data_dir, output_dir):
 
 # Read from clean numpy data files and ouput error data files
 def create_split_error_dataset(data_dir, output_dir):
-    file_list = glob.glob(data_dir+"*.dat")
+    file_list = glob.glob(data_dir+"*.npy")
     file_list.sort()
     for filename in file_list:
         print filename
-        data = np.fromfile(filename, dtype=np.double).reshape(NX, NY, NZ, 3)
+        data = np.load(filename)
 
         # Insert an error
-        x, y, z, var = random.randint(1, data.shape[0])-1, random.randint(1, data.shape[1])-1, \
-                        random.randint(1, data.shape[2])-1, random.randint(0, 2)
-        data[x, y, z, var] = get_flip_error(data[x, y, z, var], 20)
+        #x, y, z, var = random.randint(1, data.shape[0])-1, random.randint(1, data.shape[1])-1, \
+        #                random.randint(1, data.shape[2])-1, random.randint(0, data.shape[3]-1)
+        #data[x, y, z, var] = get_flip_error(data[x, y, z, var], 20)
+        x, y, var = random.randint(1, data.shape[0])-1, random.randint(1, data.shape[1])-1, random.randint(0, data.shape[2]-1)
+        data[x, y, 0] = get_flip_error(data[x, y, 0], 15)
         tmp = filename.split("/")[-1]
         tmp = tmp.replace("clean", "error")
         output_filename = output_dir + "/" + tmp
-        data.tofile(output_filename)   # Save to binary format
+        np.save(output_filename, data)   # Save to binary format
 
 if __name__ == "__main__":
     input_dir = sys.argv[1]
