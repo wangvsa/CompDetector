@@ -3,7 +3,7 @@ import bitstring, math
 import numpy as np
 import glob
 from skimage.util.shape import view_as_windows, view_as_blocks
-NX, NY, NZ = 32, 32, 32
+NX, NY, NZ = 16, 16, 16
 
 # See the difference of clean data and decompressed data with one error
 def test_sz(origin_file, decompressed_file):
@@ -28,14 +28,21 @@ def hdf5_to_numpy(filename, var_name="dens"):
     return data
 
 def get_flip_error(val, bits = 20, threshold = None):
+    attempt = 0
     while True :
-        pos = random.randint(0, bits)
+        attempt += 1
+        pos = random.randint(1, bits)
         error = bit_flip(val, pos)
         if not math.isnan(error) and not math.isinf(error):
             if threshold is None or abs(error-val) > threshold:
                 break
-    error = min(10e+3, error)
-    error = max(-10e+3, error)
+        if attempt > 100:
+            error = 2 * val
+            break
+    #if abs(error) <= 1e-3:
+    #    error = 0
+    error = min(10e1, error)
+    error = max(-10e1, error)
     return error
 
 def split_to_windows(frame, rows, cols, overlap):
@@ -143,10 +150,15 @@ def create_split_error_testset(data_dir):
 
 # Read from FLASH directory(hdf5 files) or unsplit_data directory(binary files)
 def create_split_clean_dataset(data_dir, output_dir):
-    file_list = glob.glob(data_dir+"/*plt_cnt_*")
-    #file_list = glob.glob(data_dir+"/*chk*")
+    #file_list = glob.glob(data_dir+"/*plt_cnt_*")
+    file_list = glob.glob(data_dir+"/*chk*")
     file_list.sort()
+    count = 0
     for filename in file_list:
+        if count % 20 != 0:
+            count += 1
+            continue
+
         dens = hdf5_to_numpy(filename, "dens")
         pres = hdf5_to_numpy(filename, "pres")
         temp = hdf5_to_numpy(filename, "temp")
@@ -163,6 +175,8 @@ def create_split_clean_dataset(data_dir, output_dir):
             tmp = filename.split("/")[-1]
             output_filename = output_dir + "/" + tmp + "." + str(i) +".clean.npy"
             np.save(output_filename, blocks[i])
+        count += 1
+
 
 # Read from clean numpy data files and ouput error data files
 def create_split_error_dataset(data_dir, output_dir):
