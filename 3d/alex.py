@@ -18,7 +18,7 @@ WINDOWS_PER_FRAME = 512
 
 
 class FlashDataset(torch.utils.data.Dataset):
-    def __init__(self, data_dir, detection=True):
+    def __init__(self, data_dir, detection=False):
         self.data_files= []
         self.targets = []
 
@@ -84,13 +84,10 @@ class FlashNet(nn.Module):
         conv_output_size = self.get_conv_output_size()
         print "conv output size: ", conv_output_size
         self.fc = nn.Sequential(
-            nn.Linear(in_features=conv_output_size, out_features=1, bias=True),
-            #nn.ReLU(),
-            #nn.Dropout(p=0.2),
-            #nn.Linear(1024, 512),
-            #nn.ReLU(),
-            #nn.Dropout(p=0.2),
-            #nn.Linear(512, 1),
+            nn.Linear(in_features=conv_output_size, out_features=256, bias=True),
+            nn.ReLU(),
+            nn.Dropout(p=0.2),
+            nn.Linear(256, 1),
             nn.Sigmoid()
         )
     def forward(self, x):
@@ -176,7 +173,8 @@ def evaluating(model, test_loader, use_gpu=True):
     total_pred = total_pred.reshape((total_pred.shape[0]/WINDOWS_PER_FRAME,WINDOWS_PER_FRAME))
     total_truth = total_truth.reshape((total_truth.shape[0]/WINDOWS_PER_FRAME,WINDOWS_PER_FRAME))
     print total_pred.shape, total_truth.shape
-    compute_metrics(np.any(total_pred, axis=1), np.any(total_truth, axis=1))
+    #compute_metrics(np.any(total_pred, axis=1), np.any(total_truth, axis=1))
+    compute_metrics(np.sum(total_pred, axis=1) == 1, np.any(total_truth, axis=1))
 
 def compute_metrics(pred_labels, true_labels):
     print pred_labels, true_labels

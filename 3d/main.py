@@ -37,12 +37,12 @@ if __name__ == "__main__":
     print("loading time: ", t2-t1)
 
     # Training
-    trainset = FlashDataset(sys.argv[1])
-    train_loader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
-    alex.training(model, train_loader, epochs=2, use_gpu=USE_GPU)
-    torch.save(model, model_file)
+    #trainset = FlashDataset(sys.argv[1])
+    #train_loader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
+    #alex.training(model, train_loader, epochs=2, use_gpu=USE_GPU)
+    #torch.save(model, model_file)
 
     # Testing
-    testset = FlashDataset(sys.argv[1])
+    testset = FlashDataset(sys.argv[1], detection=True)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=8)
     alex.evaluating(model, test_loader, use_gpu=USE_GPU)
