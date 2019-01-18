@@ -34,6 +34,9 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         self.testing = testing
         self.error_blocks = np.random.randint(WINDOWS_PER_IMAGE, size=self.error_labels/WINDOWS_PER_IMAGE)
 
+        # keep errors and original values
+        self.error_information = []
+
     def __len__(self):
         return np.ceil(len(self.files) / float(self.batch_size))
 
@@ -52,13 +55,17 @@ class FlashDatasetGenerator(keras.utils.Sequence):
                         # Insert an error
                         x, y, z, v = random.randint(0, img.shape[0]-1), random.randint(0, img.shape[1]-1),\
                                     random.randint(0, img.shape[2]-1), random.randint(0, img.shape[3]-1)
-                        img[x, y, z, v] = get_flip_error(img[x, y, z, v], 10)
+                        old = img[x, y, z, v]
+                        img[x, y, z, v] = get_flip_error(img[x, y, z, v], 5)
+
+                        # record errors
+                        self.error_information.append([old, img[x,y,z,v]])
                 else:               # training, then all blocks in an image has an error
                     if file_index >= self.clean_labels:
                         # Insert an error
                         x, y, z, v = random.randint(1, img.shape[0]-2), random.randint(1, img.shape[1]-2),\
                                     random.randint(1, img.shape[2]-2), random.randint(0, img.shape[3]-1)
-                        img[x, y, z, v] = get_flip_error(img[x, y, z, v], 10)
+                        img[x, y, z, v] = get_flip_error(img[x, y, z, v], 5)
             # Normalization
             #img_min = np.min(img)
             #img_max = np.max(img)
@@ -100,17 +107,20 @@ def compute_metrics(pred_labels, true_labels):
     error_samples = np.sum(true_labels == 1) * 1.0
     total = clean_samples + error_samples * 1.0
     # True Positive (TP): we predict a label of 1 (positive), and the true label is 1.
+    tp_index = np.nonzero(np.logical_and(pred_labels == 1, true_labels == 1))[0]
     tp = np.sum(np.logical_and(pred_labels == 1, true_labels == 1))
     # True Negative (TN): we predict a label of 0 (negative), and the true label is 0.
     tn = np.sum(np.logical_and(pred_labels == 0, true_labels == 0))
     # False Positive (FP): we predict a label of 1 (positive), but the true label is 0.
     fp = np.sum(np.logical_and(pred_labels == 1, true_labels == 0))
     # False Negative (FN): we predict a label of 0 (negative), but the true label is 1.
+    fn_index = np.nonzero(np.logical_and(pred_labels == 0, true_labels == 1))[0]
     fn = np.sum(np.logical_and(pred_labels == 0, true_labels == 1))
     recall, fpr = tp / error_samples, fp / total
     accuracy = (tp + tn) / total
     print 'TP: %s (%i/%i), FP: %s (%i/%i)' %(recall, tp, error_samples, fpr, fp, total)
     print 'ACC: %s, TN: %i, FN: %i' %(accuracy, tn, fn)
+    return tp_index, fn_index
 
 if __name__ == "__main__":
 
@@ -122,18 +132,20 @@ if __name__ == "__main__":
 
     if args.train_dataset:
         if args.epochs: EPOCHS = int(args.epochs)
-        data_gen = FlashDatasetGenerator(args.train_dataset, 32, zero_propagation=True, testing=False)
-        #model.load_weights('model_keras.h5')
+        data_gen = FlashDatasetGenerator(args.train_dataset, 64, zero_propagation=True, testing=False)
+        model.load_weights('model_keras.h5')
         model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=EPOCHS, shuffle=True)
         model.save_weights('model_keras.h5')
-        #print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
+        print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
     elif args.test_dataset:
-        data_gen = FlashDatasetGenerator(args.test_dataset, 32, testing=True)
+        data_gen = FlashDatasetGenerator(args.test_dataset, 64, zero_propagation=True, testing=True)
         model.load_weights('model_keras.h5')
+        print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
         scores = model.predict_generator(generator=data_gen, use_multiprocessing=False, workers=1, verbose=1)
         scores = scores.reshape((len(scores)/WINDOWS_PER_IMAGE, WINDOWS_PER_IMAGE))
         for threshold in [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 0.99]:
             print "Threshold =", threshold
             pred = (scores >= threshold)    # shape of (N, WINDOWS_PER_IMAGE)
             pred = np.any(pred, axis=1)
-            compute_metrics(pred, data_gen.get_true_labels())
+            tp_index, fn_index = compute_metrics(pred, data_gen.get_true_labels())
+            #print np.array(data_gen.error_information)[fn_index-50]

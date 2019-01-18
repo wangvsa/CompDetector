@@ -37,12 +37,11 @@ def get_flip_error(val, bits = 20, threshold = None):
             if threshold is None or abs(error-val) > threshold:
                 break
         if attempt > 100:
-            error = 2 * val
+            error = 10
             break
-    #if abs(error) <= 1e-3:
-    #    error = 0
-    error = min(10e1, error)
-    error = max(-10e1, error)
+    #if abs(error) <= 1e-3: error = 0
+    error = min(100, error)
+    error = max(-100, error)
     return error
 
 def split_to_windows(frame, rows, cols, overlap):
@@ -149,23 +148,23 @@ def create_split_error_testset(data_dir):
             windows[i].tofile(output_filename)   # Save to binary format
 
 # Read from FLASH directory(hdf5 files) or unsplit_data directory(binary files)
-def create_split_clean_dataset(data_dir, output_dir):
+def create_split_clean_dataset(data_dir, output_dir, postfix=".clean.npy"):
     #file_list = glob.glob(data_dir+"/*plt_cnt_*")
     file_list = glob.glob(data_dir+"/*chk*")
     file_list.sort()
     count = 0
     for filename in file_list:
-        if count % 20 != 0:
-            count += 1
-            continue
+        #if count % 20 != 0:
+        #    count += 1
+        #    continue
 
         dens = hdf5_to_numpy(filename, "dens")
-        pres = hdf5_to_numpy(filename, "pres")
-        temp = hdf5_to_numpy(filename, "temp")
+        #pres = hdf5_to_numpy(filename, "pres")
+        #temp = hdf5_to_numpy(filename, "temp")
 
         dens_blocks = np.squeeze(split_to_blocks(dens))
-        pres_blocks = np.squeeze(split_to_blocks(pres))
-        temp_blocks = np.squeeze(split_to_blocks(temp))
+        #pres_blocks = np.squeeze(split_to_blocks(pres))
+        #temp_blocks = np.squeeze(split_to_blocks(temp))
 
         # -> (512, NX, NY, NZ, 3)
         #blocks = np.stack((dens_blocks, pres_blocks, temp_blocks), -1)
@@ -173,29 +172,14 @@ def create_split_clean_dataset(data_dir, output_dir):
         print filename, blocks.shape
         for i in range(blocks.shape[0]):
             tmp = filename.split("/")[-1]
-            output_filename = output_dir + "/" + tmp + "." + str(i) +".clean.npy"
+            output_filename = output_dir + "/" + tmp + "." + str(i) + postfix
             np.save(output_filename, blocks[i])
         count += 1
 
 
 # Read from clean numpy data files and ouput error data files
 def create_split_error_dataset(data_dir, output_dir):
-    file_list = glob.glob(data_dir+"*.npy")
-    file_list.sort()
-    for filename in file_list:
-        print filename
-        data = np.load(filename)
-
-        # Insert an error
-        #x, y, z, var = random.randint(1, data.shape[0])-1, random.randint(1, data.shape[1])-1, \
-        #                random.randint(1, data.shape[2])-1, random.randint(0, data.shape[3]-1)
-        #data[x, y, z, var] = get_flip_error(data[x, y, z, var], 20)
-        x, y, var = random.randint(1, data.shape[0])-1, random.randint(1, data.shape[1])-1, random.randint(0, data.shape[2]-1)
-        data[x, y, 0] = get_flip_error(data[x, y, 0], 15)
-        tmp = filename.split("/")[-1]
-        tmp = tmp.replace("clean", "error")
-        output_filename = output_dir + "/" + tmp
-        np.save(output_filename, data)   # Save to binary format
+    create_split_clean_dataset(data_dir, output_dir, postfix=".error.npy")
 
 if __name__ == "__main__":
     input_dir = sys.argv[1]

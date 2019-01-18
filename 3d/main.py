@@ -31,7 +31,7 @@ def load_model(model_file):
 if __name__ == "__main__":
 
     t1 = time.time()
-    model_file = "./sod.model"
+    model_file = "./sedov.model"
     model = load_model(model_file)
     t2 = time.time()
     print("loading time: ", t2-t1)
@@ -39,8 +39,10 @@ if __name__ == "__main__":
     # Training
     trainset = FlashDataset(sys.argv[1])
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
-    alex.training(model, train_loader, epochs=1, use_gpu=USE_GPU)
+    alex.training(model, train_loader, epochs=2, use_gpu=USE_GPU)
     torch.save(model, model_file)
 
     # Testing
-    #alex.evaluating(model, train_loader, use_gpu=USE_GPU)
+    testset = FlashDataset(sys.argv[1])
+    test_loader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=8)
+    alex.evaluating(model, test_loader, use_gpu=USE_GPU)
