@@ -149,8 +149,8 @@ def create_split_error_testset(data_dir):
 
 # Read from FLASH directory(hdf5 files) or unsplit_data directory(binary files)
 def create_split_clean_dataset(data_dir, output_dir, postfix=".clean.npy"):
-    file_list = glob.glob(data_dir+"/*plt_cnt_*")
-    #file_list = glob.glob(data_dir+"/*chk*")
+    #file_list = glob.glob(data_dir+"/*plt_cnt_*")
+    file_list = glob.glob(data_dir+"/*chk*")
     file_list.sort()
     count = 0
     for filename in file_list:

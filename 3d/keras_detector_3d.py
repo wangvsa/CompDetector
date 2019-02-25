@@ -14,6 +14,20 @@ WINDOWS_PER_IMAGE = 64*64*64/NX/NY/NZ
 variables = ["dens"]
 EPOCHS = 3
 
+def calc_gradient(data):
+    d = data[:,:,:,0]
+    grad = np.gradient(d)
+    if len(grad) == 3:      # 3D data
+        d = np.sqrt(grad[0]**2  + grad[1]**2 + grad[2]**2)
+        return d.reshape(data.shape)
+
+# shuffle two list at the same order
+def shuffle_two_lists(l1, l2):
+    l = list(zip(l1, l2))
+    random.shuffle(l)
+    r1, r2 = zip(*l)
+    return list(r1), list(r2)
+
 class FlashDatasetGenerator(keras.utils.Sequence):
     def __init__(self, data_dir, batch_size, zero_propagation=True):
         self.zero_propagation = zero_propagation
@@ -23,11 +37,13 @@ class FlashDatasetGenerator(keras.utils.Sequence):
             error_files = list(clean_files)
         else:
             error_files = glob.glob(data_dir+"/*/error/*")
-        self.files = clean_files + error_files
-        self.clean_labels, self.error_labels = len(clean_files), len(error_files)
-        print "clean files:", self.clean_labels, ", error files:", self.error_labels
-        self.labels = np.append(np.zeros(self.clean_labels), np.ones(self.error_labels))
+        files = clean_files + error_files
+        labels = np.append(np.zeros(len(clean_files)), np.ones(len(error_files)))
+        print "clean files:", len(clean_files), ", error files:", len(error_files)
         self.batch_size = batch_size
+
+        self.files, self.labels = shuffle_two_lists(files, labels)
+
 
     def __len__(self):
         return np.ceil(len(self.files) / float(self.batch_size))
@@ -41,10 +57,11 @@ class FlashDatasetGenerator(keras.utils.Sequence):
             if self.zero_propagation:
                 if self.labels[file_index]:
                     # Insert an error
-                    x, y, z, v = random.randint(1, img.shape[0]-2), random.randint(1, img.shape[1]-2),\
-                                random.randint(1, img.shape[2]-2), random.randint(0, img.shape[3]-1)
-                    img[x, y, z, v] = get_flip_error(img[x, y, z, v], 10)
-            batch_x.append(img)
+                    x, y, z, v = random.randint(4, img.shape[0]-3), random.randint(4, img.shape[1]-3),\
+                                random.randint(4, img.shape[2]-3), random.randint(0, img.shape[3]-1)
+                    error = get_flip_error(img[x,y,z,v], 15)
+                    img[x, y, z, v] = error
+            batch_x.append(calc_gradient(img))
         return np.array(batch_x), batch_y
 
     def get_true_labels(self):
@@ -53,12 +70,16 @@ class FlashDatasetGenerator(keras.utils.Sequence):
 
 model = Sequential([
     Conv3D(32, (3,3,3), input_shape=(NX, NY, NZ, len(variables))),
+    BatchNormalization(axis=-1),
     Activation('relu'),
-    #BatchNormalization(),
     #MaxPooling3D(pool_size=(3, 3, 3)),
-    Conv3D(32, (3,3,3), activation='relu'),
+    Conv3D(32, (3,3,3)),
+    BatchNormalization(axis=-1),
+    Activation('relu'),
     #MaxPooling3D(pool_size=(3, 3, 1)),
-    Conv3D(32, (3,3,3), activation='relu'),
+    Conv3D(32, (3,3,3)),
+    BatchNormalization(axis=-1),
+    Activation('relu'),
     MaxPooling3D(pool_size=(3, 3, 3)),
     Flatten(),
     Dropout(0.25),
@@ -71,27 +92,24 @@ except:
     pass
 
 #adam = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=1e-3, amsgrad=False)
-model.compile(optimizer="sgd", loss='binary_crossentropy', metrics=['accuracy'])
+model.compile(optimizer="adam", loss='binary_crossentropy', metrics=['accuracy'])
 
 def compute_metrics(pred_labels, true_labels):
-    clean_samples = np.sum(true_labels == 0) * 1.0
-    error_samples = np.sum(true_labels == 1) * 1.0
-    total = clean_samples + error_samples * 1.0
+    true_labels = np.array(true_labels).reshape(pred_labels.shape)
+    error_samples = np.sum(true_labels)
+    total = len(true_labels)
     # True Positive (TP): we predict a label of 1 (positive), and the true label is 1.
-    tp_index = np.nonzero(np.logical_and(pred_labels == 1, true_labels == 1))[0]
     tp = np.sum(np.logical_and(pred_labels == 1, true_labels == 1))
     # True Negative (TN): we predict a label of 0 (negative), and the true label is 0.
     tn = np.sum(np.logical_and(pred_labels == 0, true_labels == 0))
     # False Positive (FP): we predict a label of 1 (positive), but the true label is 0.
     fp = np.sum(np.logical_and(pred_labels == 1, true_labels == 0))
     # False Negative (FN): we predict a label of 0 (negative), but the true label is 1.
-    fn_index = np.nonzero(np.logical_and(pred_labels == 0, true_labels == 1))[0]
     fn = np.sum(np.logical_and(pred_labels == 0, true_labels == 1))
     recall, fpr = tp / error_samples, fp / total
     accuracy = (tp + tn) / total
     print 'TP: %s (%i/%i), FP: %s (%i/%i)' %(recall, tp, error_samples, fpr, fp, total)
     print 'ACC: %s, TN: %i, FN: %i' %(accuracy, tn, fn)
-    return tp_index, fn_index
 
 if __name__ == "__main__":
 
@@ -111,11 +129,10 @@ if __name__ == "__main__":
     elif args.test_dataset:
         data_gen = FlashDatasetGenerator(args.test_dataset, 64, zero_propagation=True)
         model.load_weights('model_keras.h5')
-        print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
+        #print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
         scores = model.predict_generator(generator=data_gen, use_multiprocessing=False, workers=1, verbose=1)
-        scores = scores.reshape((len(scores)/WINDOWS_PER_IMAGE, WINDOWS_PER_IMAGE))
         for threshold in [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 0.99]:
             print "Threshold =", threshold
             pred = (scores >= threshold)    # shape of (N, WINDOWS_PER_IMAGE)
-            pred = np.any(pred, axis=1)
-            tp_index, fn_index = compute_metrics(pred, data_gen.get_true_labels())
+            #pred = np.any(pred, axis=1)
+            compute_metrics(pred, data_gen.labels)
