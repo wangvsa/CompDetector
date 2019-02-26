@@ -5,14 +5,14 @@ import keras
 import keras.backend as K
 import numpy as np
 import sys, glob, argparse, random
-from create_dataset import get_flip_error
+from create_dataset import get_flip_error, split_to_blocks, hdf5_to_numpy
 
 
 NX, NY, NZ = 16, 16, 16
 WINDOWS_PER_IMAGE = 64*64*64/NX/NY/NZ
 #variables = ["dens", "pres", "temp"]
 variables = ["dens"]
-EPOCHS = 3
+EPOCHS = 1
 
 def calc_gradient(data):
     d = data[:,:,:,0]
@@ -59,7 +59,7 @@ class FlashDatasetGenerator(keras.utils.Sequence):
                     # Insert an error
                     x, y, z, v = random.randint(4, img.shape[0]-3), random.randint(4, img.shape[1]-3),\
                                 random.randint(4, img.shape[2]-3), random.randint(0, img.shape[3]-1)
-                    error = get_flip_error(img[x,y,z,v], 15)
+                    error = get_flip_error(img[x,y,z,v], 10)
                     img[x, y, z, v] = error
             batch_x.append(calc_gradient(img))
         return np.array(batch_x), batch_y
@@ -72,11 +72,9 @@ model = Sequential([
     Conv3D(32, (3,3,3), input_shape=(NX, NY, NZ, len(variables))),
     BatchNormalization(axis=-1),
     Activation('relu'),
-    #MaxPooling3D(pool_size=(3, 3, 3)),
     Conv3D(32, (3,3,3)),
     BatchNormalization(axis=-1),
     Activation('relu'),
-    #MaxPooling3D(pool_size=(3, 3, 1)),
     Conv3D(32, (3,3,3)),
     BatchNormalization(axis=-1),
     Activation('relu'),
@@ -96,8 +94,8 @@ model.compile(optimizer="adam", loss='binary_crossentropy', metrics=['accuracy']
 
 def compute_metrics(pred_labels, true_labels):
     true_labels = np.array(true_labels).reshape(pred_labels.shape)
-    error_samples = np.sum(true_labels)
-    total = len(true_labels)
+    error_samples = np.sum(true_labels) * 1.0
+    total = len(true_labels) * 1.0
     # True Positive (TP): we predict a label of 1 (positive), and the true label is 1.
     tp = np.sum(np.logical_and(pred_labels == 1, true_labels == 1))
     # True Negative (TN): we predict a label of 0 (negative), and the true label is 0.
@@ -117,6 +115,7 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--train_dataset", help="The path to the training set")
     parser.add_argument("-e", "--test_dataset", help="The path to the test set")
     parser.add_argument("-n", "--epochs", help="How many epochs for training")
+    parser.add_argument("-d", "--detect_dataset", help="Run the detector on a given dataset")
     args = parser.parse_args()
 
     if args.train_dataset:
@@ -136,3 +135,12 @@ if __name__ == "__main__":
             pred = (scores >= threshold)    # shape of (N, WINDOWS_PER_IMAGE)
             #pred = np.any(pred, axis=1)
             compute_metrics(pred, data_gen.labels)
+    elif args.detect_dataset:
+        model.load_weights('model_keras.h5')
+        for filename in glob.glob(args.detect_dataset+"/error_*"):
+            dens = hdf5_to_numpy(filename)
+            dens_blocks = np.expand_dims(np.squeeze(split_to_blocks(dens)), -1)
+            for i in range(dens_blocks.shape[0]):
+                dens_blocks[i] = calc_gradient(dens_blocks[i])
+            pred = model.predict(dens_blocks) > 0.5
+            print filename, np.any(pred)
