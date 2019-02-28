@@ -40,8 +40,8 @@ def get_flip_error(val, bits = 20, threshold = None):
             error = 10
             break
     #if abs(error) <= 1e-3: error = 0
-    error = min(100, error)
-    error = max(-100, error)
+    error = min(10000, error)
+    error = max(-10000, error)
     return error
 
 def split_to_windows(frame, rows, cols, overlap):

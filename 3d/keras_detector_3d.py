@@ -12,7 +12,7 @@ NX, NY, NZ = 16, 16, 16
 WINDOWS_PER_IMAGE = 64*64*64/NX/NY/NZ
 #variables = ["dens", "pres", "temp"]
 variables = ["dens"]
-EPOCHS = 1
+EPOCHS = 2
 
 def calc_gradient(data):
     d = data[:,:,:,0]
@@ -46,20 +46,21 @@ class FlashDatasetGenerator(keras.utils.Sequence):
 
 
     def __len__(self):
-        return np.ceil(len(self.files) / float(self.batch_size))
+        return np.floor(len(self.files) / float(self.batch_size))
 
     def __getitem__(self, idx):
         batch_y = self.labels[idx*self.batch_size: (idx+1)*self.batch_size]
         batch_x = []
         for file_index in range(idx*self.batch_size, (idx+1)*self.batch_size):
             img = np.load(self.files[file_index])
+            if img.ndim == 3: img = np.expand_dims(img, axis=-1)
             # if zero_propagation, insert an error to create the error data at runtime
             if self.zero_propagation:
                 if self.labels[file_index]:
                     # Insert an error
                     x, y, z, v = random.randint(4, img.shape[0]-3), random.randint(4, img.shape[1]-3),\
                                 random.randint(4, img.shape[2]-3), random.randint(0, img.shape[3]-1)
-                    error = get_flip_error(img[x,y,z,v], 10)
+                    error = get_flip_error(img[x,y,z,v], 20)
                     img[x, y, z, v] = error
             batch_x.append(calc_gradient(img))
         return np.array(batch_x), batch_y
@@ -120,7 +121,7 @@ if __name__ == "__main__":
 
     if args.train_dataset:
         if args.epochs: EPOCHS = int(args.epochs)
-        data_gen = FlashDatasetGenerator(args.train_dataset, 64, zero_propagation=True)
+        data_gen = FlashDatasetGenerator(args.train_dataset, 64, zero_propagation=False)
         #model.load_weights('model_keras.h5')
         model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=EPOCHS, shuffle=True)
         model.save_weights('model_keras.h5')
@@ -137,10 +138,17 @@ if __name__ == "__main__":
             compute_metrics(pred, data_gen.labels)
     elif args.detect_dataset:
         model.load_weights('model_keras.h5')
+        error, nan_count = 0, 0
         for filename in glob.glob(args.detect_dataset+"/error_*"):
             dens = hdf5_to_numpy(filename)
+            if np.isnan(dens).any():
+                error, nan_count = error+1, nan_count+1
+                continue
             dens_blocks = np.expand_dims(np.squeeze(split_to_blocks(dens)), -1)
             for i in range(dens_blocks.shape[0]):
                 dens_blocks[i] = calc_gradient(dens_blocks[i])
             pred = model.predict(dens_blocks) > 0.5
-            print filename, np.any(pred)
+            error += np.any(pred)
+            if np.any(pred) == 0:
+                print filename
+        print "detected %s error samples (%s nan samples) " %(error, nan_count)
