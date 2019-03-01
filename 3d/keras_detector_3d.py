@@ -55,13 +55,12 @@ class FlashDatasetGenerator(keras.utils.Sequence):
             img = np.load(self.files[file_index])
             if img.ndim == 3: img = np.expand_dims(img, axis=-1)
             # if zero_propagation, insert an error to create the error data at runtime
-            if self.zero_propagation:
-                if self.labels[file_index]:
-                    # Insert an error
-                    x, y, z, v = random.randint(4, img.shape[0]-3), random.randint(4, img.shape[1]-3),\
-                                random.randint(4, img.shape[2]-3), random.randint(0, img.shape[3]-1)
-                    error = get_flip_error(img[x,y,z,v], 20)
-                    img[x, y, z, v] = error
+            if self.zero_propagation and self.labels[file_index]:
+                # Insert an error
+                x, y, z, v = random.randint(4, img.shape[0]-3), random.randint(4, img.shape[1]-3),\
+                            random.randint(4, img.shape[2]-3), random.randint(0, img.shape[3]-1)
+                error = get_flip_error(img[x,y,z,v], 15)
+                img[x, y, z, v] = error
             batch_x.append(calc_gradient(img))
         return np.array(batch_x), batch_y
 
@@ -71,13 +70,13 @@ class FlashDatasetGenerator(keras.utils.Sequence):
 
 model = Sequential([
     Conv3D(32, (3,3,3), input_shape=(NX, NY, NZ, len(variables))),
-    BatchNormalization(axis=-1),
+    #BatchNormalization(axis=-1),
     Activation('relu'),
     Conv3D(32, (3,3,3)),
-    BatchNormalization(axis=-1),
+    #BatchNormalization(axis=-1),
     Activation('relu'),
     Conv3D(32, (3,3,3)),
-    BatchNormalization(axis=-1),
+    #BatchNormalization(axis=-1),
     Activation('relu'),
     MaxPooling3D(pool_size=(3, 3, 3)),
     Flatten(),
@@ -116,19 +115,23 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--train_dataset", help="The path to the training set")
     parser.add_argument("-e", "--test_dataset", help="The path to the test set")
     parser.add_argument("-n", "--epochs", help="How many epochs for training")
+    parser.add_argument("-m", "--model", help="Specify thet model file")
     parser.add_argument("-d", "--detect_dataset", help="Run the detector on a given dataset")
     args = parser.parse_args()
 
+    model_file = "model_keras.h5"
+    if args.model:
+        model_file = args.model
     if args.train_dataset:
         if args.epochs: EPOCHS = int(args.epochs)
         data_gen = FlashDatasetGenerator(args.train_dataset, 64, zero_propagation=False)
-        #model.load_weights('model_keras.h5')
+        model.load_weights(model_file)
         model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=EPOCHS, shuffle=True)
         model.save_weights('model_keras.h5')
         print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
     elif args.test_dataset:
         data_gen = FlashDatasetGenerator(args.test_dataset, 64, zero_propagation=True)
-        model.load_weights('model_keras.h5')
+        model.load_weights(model_file)
         #print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
         scores = model.predict_generator(generator=data_gen, use_multiprocessing=False, workers=1, verbose=1)
         for threshold in [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 0.99]:
@@ -137,9 +140,11 @@ if __name__ == "__main__":
             #pred = np.any(pred, axis=1)
             compute_metrics(pred, data_gen.labels)
     elif args.detect_dataset:
-        model.load_weights('model_keras.h5')
+        model.load_weights(model_file)
         error, nan_count = 0, 0
-        for filename in glob.glob(args.detect_dataset+"/error_*"):
+        files = list(glob.glob(args.detect_dataset+"/error_*"))
+        files.sort()
+        for filename in files:
             dens = hdf5_to_numpy(filename)
             if np.isnan(dens).any():
                 error, nan_count = error+1, nan_count+1
@@ -151,4 +156,4 @@ if __name__ == "__main__":
             error += np.any(pred)
             if np.any(pred) == 0:
                 print filename
-        print "detected %s error samples (%s nan samples) " %(error, nan_count)
+        print "detected %s error samples (%s nan samples), total: %s, recall: %s" %(error, nan_count, len(files), error*1.0/len(files))
