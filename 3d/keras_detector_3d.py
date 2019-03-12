@@ -141,7 +141,8 @@ if __name__ == "__main__":
     elif args.detect_dataset:
         model.load_weights(model_file)
         error, nan_count = 0, 0
-        files = list(glob.glob(args.detect_dataset+"/*chk_*"))
+        # match both for clean checkpoint files and k-delay corrupted files
+        files = glob.glob(args.detect_dataset+"/*chk_*")+glob.glob(args.detect_dataset+"/*error*")
         files.sort()
         for filename in files:
             dens = hdf5_to_numpy(filename)
@@ -154,5 +155,5 @@ if __name__ == "__main__":
             pred = model.predict(dens_blocks) > 0.5
             error += np.any(pred)
             if np.any(pred) == 0:
-                print filename
+                print filename  # no error detected
         print "detected %s error samples (%s nan samples), total: %s, recall: %s" %(error, nan_count, len(files), error*1.0/len(files))
