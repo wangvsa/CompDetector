@@ -110,22 +110,21 @@ def compute_metrics(pred_labels, true_labels):
     print 'ACC: %s, TN: %i, FN: %i' %(accuracy, tn, fn)
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
-    parser.add_argument("-t", "--train_dataset", help="The path to the training set")
-    parser.add_argument("-e", "--test_dataset", help="The path to the test set")
+    parser.add_argument("-t", "--train_dataset", help="The path to the splitted training set")
+    parser.add_argument("-e", "--test_dataset", help="The path to the splitted test set")
     parser.add_argument("-n", "--epochs", help="How many epochs for training")
     parser.add_argument("-m", "--model", help="Specify thet model file")
-    parser.add_argument("-d", "--detect_dataset", help="Run the detector on a given dataset")
+    parser.add_argument("-d", "--detect_dataset", help="Run the detector on a unsplitted dataset")
     args = parser.parse_args()
 
-    model_file = "model_keras.h5"
+    model_file = "./models/model_keras.h5"
     if args.model:
         model_file = args.model
     if args.train_dataset:
         if args.epochs: EPOCHS = int(args.epochs)
-        data_gen = FlashDatasetGenerator(args.train_dataset, 64, zero_propagation=False)
-        model.load_weights(model_file)
+        data_gen = FlashDatasetGenerator(args.train_dataset, 64, zero_propagation=True)
+        #model.load_weights(model_file)
         model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=EPOCHS, shuffle=True)
         model.save_weights('model_keras.h5')
         print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
@@ -142,7 +141,7 @@ if __name__ == "__main__":
     elif args.detect_dataset:
         model.load_weights(model_file)
         error, nan_count = 0, 0
-        files = list(glob.glob(args.detect_dataset+"/error_*"))
+        files = list(glob.glob(args.detect_dataset+"/*chk_*"))
         files.sort()
         for filename in files:
             dens = hdf5_to_numpy(filename)
