@@ -126,7 +126,7 @@ if __name__ == "__main__":
         data_gen = FlashDatasetGenerator(args.train_dataset, 64, zero_propagation=True)
         #model.load_weights(model_file)
         model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=EPOCHS, shuffle=True)
-        model.save_weights('model_keras.h5')
+        model.save_weights(model_file)
         print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
     elif args.test_dataset:
         data_gen = FlashDatasetGenerator(args.test_dataset, 64, zero_propagation=True)
