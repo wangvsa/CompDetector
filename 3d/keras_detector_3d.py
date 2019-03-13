@@ -5,6 +5,7 @@ import keras
 import keras.backend as K
 import numpy as np
 import sys, glob, argparse, random
+import warnings
 from create_dataset import get_flip_error, split_to_blocks, hdf5_to_numpy
 
 
@@ -29,8 +30,30 @@ def shuffle_two_lists(l1, l2):
     r1, r2 = zip(*l)
     return list(r1), list(r2)
 
+
+# Those are errors so easy to detect
+# Do not need to run the neural network
+def simple_pre_detect(d):
+    if np.isnan(d).any():
+        return True
+    if (abs(d) > 10e4).any():
+        return True
+    return False
+
+
 # The Data Generator is only used for training and testing on splitted dataset
 class FlashDatasetGenerator(keras.utils.Sequence):
+    def preprocess(self, tmp_clean_files, tmp_error_files):
+        clean_files = []
+        error_files = []
+        for f in tmp_clean_files:
+            if not simple_pre_detect(np.load(f)):
+                clean_files.append(f)
+        for f in tmp_error_files:
+            if not simple_pre_detect(np.load(f)):
+                error_files.append(f)
+        return clean_files, error_files
+
     def __init__(self, clean_data_dir, error_data_dir, batch_size):
         self.zero_propagation = False
         if clean_data_dir:
@@ -40,6 +63,7 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         else:   # insert error at runtime
             self.zero_propagation = True
             error_files = list(clean_files)
+        clean_files, error_files = self.preprocess(clean_files, error_files)
         files = clean_files + error_files
         labels = np.append(np.zeros(len(clean_files)), np.ones(len(error_files)))
         print "clean files:", len(clean_files), ", error files:", len(error_files)
@@ -131,7 +155,7 @@ if __name__ == "__main__":
 
     if args.train:
         data_gen = FlashDatasetGenerator(args.clean, args.error, BATCH_SIZE)
-        model.load_weights(model_file)
+        #model.load_weights(model_file)
         model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=args.epochs, shuffle=True)
         model.save_weights(model_file)
         print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
@@ -155,10 +179,18 @@ if __name__ == "__main__":
                 error, nan_count = error+1, nan_count+1
                 continue
             dens_blocks = np.expand_dims(np.squeeze(split_to_blocks(dens)), -1)
-            for i in range(dens_blocks.shape[0]):
-                dens_blocks[i] = calc_gradient(dens_blocks[i])
-            pred = model.predict(dens_blocks) > 0.5
-            error += np.any(pred)
-            if np.any(pred) == 0:
-                print filename  # no error detected
+            # consider all warnings as errors
+            with warnings.catch_warnings():
+                warnings.filterwarnings("error")
+                try:
+                    for i in range(dens_blocks.shape[0]):
+                        dens_blocks[i] = calc_gradient(dens_blocks[i])
+                    pred = model.predict(dens_blocks) > 0.5
+                    error += np.any(pred)
+                    if np.any(pred) == 0:
+                        print filename  # no error detected
+                except Warning as e:
+                    error += 1
+                    print "here!!!!", e
+                    continue
         print "detected %s error samples (%s nan samples), total: %s, recall: %s" %(error, nan_count, len(files), error*1.0/len(files))
