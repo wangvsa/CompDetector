@@ -59,10 +59,11 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         if clean_data_dir:
             clean_files = glob.glob(clean_data_dir+"/*")
         if error_data_dir:
-            error_files = glob.glob(error_data_dir+"/*")
+            error_files = glob.glob(error_data_dir+"/*/*")
         else:   # insert error at runtime
             self.zero_propagation = True
             error_files = list(clean_files)
+        print "clean files:", len(clean_files), ", error files:", len(error_files)
         clean_files, error_files = self.preprocess(clean_files, error_files)
         files = clean_files + error_files
         labels = np.append(np.zeros(len(clean_files)), np.ones(len(error_files)))
