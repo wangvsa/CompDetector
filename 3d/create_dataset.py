@@ -148,16 +148,12 @@ def create_split_error_testset(data_dir):
             windows[i].tofile(output_filename)   # Save to binary format
 
 # Read from FLASH directory(hdf5 files) or unsplit_data directory(binary files)
-def create_split_clean_dataset(data_dir, output_dir, postfix=".clean.npy"):
+def create_split_dataset(data_dir, output_dir, insert_error=False, postfix=".clean.npy"):
     #file_list = glob.glob(data_dir+"/*plt_cnt_*")
     file_list = glob.glob(data_dir+"/*chk*")
     file_list.sort()
     count = 0
     for filename in file_list:
-        #if count % 20 != 0:
-        #    count += 1
-        #    continue
-
         dens = hdf5_to_numpy(filename, "dens")
         #pres = hdf5_to_numpy(filename, "pres")
         #temp = hdf5_to_numpy(filename, "temp")
@@ -171,20 +167,19 @@ def create_split_clean_dataset(data_dir, output_dir, postfix=".clean.npy"):
         blocks = np.expand_dims(dens_blocks, -1)
         print filename, blocks.shape
         for i in range(blocks.shape[0]):
+            if insert_error:
+                postfix = ".error.npy"
+                x, y, z, v = random.randint(4, blocks[i].shape[0]-3), random.randint(4, blocks[i].shape[1]-3),\
+                            random.randint(4, blocks[i].shape[2]-3), random.randint(0, blocks[i].shape[3]-1)
+                error = get_flip_error(blocks[i][x,y,z,v], 15)
+                blocks[i][x,y,z,v] = error
             tmp = filename.split("/")[-1]
             output_filename = output_dir + "/" + tmp + "." + str(i) + postfix
             np.save(output_filename, blocks[i])
-        count += 1
 
-
-# Read from clean numpy data files and ouput error data files
-def create_split_error_dataset(data_dir, output_dir):
-    create_split_clean_dataset(data_dir, output_dir, postfix=".error.npy")
 
 if __name__ == "__main__":
     input_dir = sys.argv[1]
     output_dir = sys.argv[2]
-    create_split_clean_dataset(input_dir, output_dir)
-    #create_split_error_dataset(input_dir, output_dir)
-    #create_split_error_testset(sys.argv[1])
+    create_split_dataset(input_dir, output_dir, True)
 
