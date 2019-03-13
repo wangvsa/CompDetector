@@ -47,12 +47,12 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         self.files, self.labels = shuffle_two_lists(files, labels)
 
     def __len__(self):
-        return np.floor(len(self.files) / float(self.batch_size))
+        return np.ceil(len(self.files) / float(self.batch_size))
 
     def __getitem__(self, idx):
         batch_y = self.labels[idx*self.batch_size: (idx+1)*self.batch_size]
         batch_x = []
-        for file_index in range(idx*self.batch_size, (idx+1)*self.batch_size):
+        for file_index in range(idx*self.batch_size, min((idx+1)*self.batch_size, len(self.files))):
             img = np.load(self.files[file_index])
             if img.ndim == 3: img = np.expand_dims(img, axis=-1)
             # if zero_propagation, insert an error to create the error data at runtime
@@ -119,8 +119,6 @@ def get_parsed_arguments():
 
 
 if __name__ == "__main__":
-
-
     # Construct the model
     try: model = multi_gpu_model(model)
     except: pass
@@ -129,6 +127,7 @@ if __name__ == "__main__":
 
     args = get_parsed_arguments()
     model_file = args.model
+    print model_file
 
     if args.train:
         data_gen = FlashDatasetGenerator(args.clean, args.error, BATCH_SIZE)
@@ -140,7 +139,6 @@ if __name__ == "__main__":
         data_gen = FlashDatasetGenerator(args.clean, args.error, BATCH_SIZE)
         model.load_weights(model_file)
         scores = model.predict_generator(generator=data_gen, use_multiprocessing=False, workers=1, verbose=1)
-        print scores.shape, len(data_gen.labels)
         for threshold in [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 0.99]:
             print "Threshold =", threshold
             pred = (scores >= threshold)
@@ -159,7 +157,7 @@ if __name__ == "__main__":
             dens_blocks = np.expand_dims(np.squeeze(split_to_blocks(dens)), -1)
             for i in range(dens_blocks.shape[0]):
                 dens_blocks[i] = calc_gradient(dens_blocks[i])
-            pred = model.predict(dens_blocks) > 0.65
+            pred = model.predict(dens_blocks) > 0.5
             error += np.any(pred)
             if np.any(pred) == 0:
                 print filename  # no error detected
