@@ -188,7 +188,7 @@ if __name__ == "__main__":
                 try:
                     for i in range(dens_blocks.shape[0]):
                         dens_blocks[i] = calc_gradient(dens_blocks[i])
-                    pred = model.predict(dens_blocks) > 0.8
+                    pred = model.predict(dens_blocks) > 0.5
                     error += np.any(pred)
                     if np.any(pred) == 0:
                         print filename  # no error detected
