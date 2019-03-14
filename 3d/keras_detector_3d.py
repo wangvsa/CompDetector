@@ -52,6 +52,7 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         for f in tmp_error_files:
             if not simple_pre_detect(np.load(f)):
                 error_files.append(f)
+        self.class_weight = {0:len(clean_files), 1:len(error_files)}
         return clean_files, error_files
 
     def __init__(self, clean_data_dir, error_data_dir, batch_size):
@@ -156,8 +157,9 @@ if __name__ == "__main__":
 
     if args.train:
         data_gen = FlashDatasetGenerator(args.clean, args.error, BATCH_SIZE)
-        #model.load_weights(model_file)
-        model.fit_generator(generator=data_gen, use_multiprocessing=True, workers=8, epochs=args.epochs, shuffle=True)
+        model.load_weights(model_file)
+        model.fit_generator(generator=data_gen, use_multiprocessing=True, class_weight=data_gen.class_weight,
+                            workers=8, epochs=args.epochs, shuffle=True)
         model.save_weights(model_file)
         print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
     elif args.test:
@@ -186,7 +188,7 @@ if __name__ == "__main__":
                 try:
                     for i in range(dens_blocks.shape[0]):
                         dens_blocks[i] = calc_gradient(dens_blocks[i])
-                    pred = model.predict(dens_blocks) > 0.5
+                    pred = model.predict(dens_blocks) > 0.8
                     error += np.any(pred)
                     if np.any(pred) == 0:
                         print filename  # no error detected
