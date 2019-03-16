@@ -181,5 +181,5 @@ def create_split_dataset(data_dir, output_dir, insert_error=False, postfix=".cle
 if __name__ == "__main__":
     input_dir = sys.argv[1]
     output_dir = sys.argv[2]
-    create_split_dataset(input_dir, output_dir, False)
+    create_split_dataset(input_dir, output_dir, True)
 
