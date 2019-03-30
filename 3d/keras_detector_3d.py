@@ -33,7 +33,7 @@ def shuffle_two_lists(l1, l2):
 
 # Those are errors so easy to detect
 # Do not need to run the neural network
-def simple_pre_detect(d):
+def simple_pre_detection(d):
     if np.isnan(d).any():
         return True
     if (abs(d) > 10e4).any():
@@ -47,10 +47,10 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         clean_files = []
         error_files = []
         for f in tmp_clean_files:
-            if not simple_pre_detect(np.load(f)):
+            if not simple_pre_detection(np.load(f)):
                 clean_files.append(f)
         for f in tmp_error_files:
-            if not simple_pre_detect(np.load(f)):
+            if not simple_pre_detection(np.load(f)):
                 error_files.append(f)
         self.class_weight = {0:len(clean_files), 1:len(error_files)}
         return clean_files, error_files
@@ -157,7 +157,7 @@ if __name__ == "__main__":
 
     if args.train:
         data_gen = FlashDatasetGenerator(args.clean, args.error, BATCH_SIZE)
-        #model.load_weights(model_file)
+        model.load_weights(model_file)
         model.fit_generator(generator=data_gen, use_multiprocessing=True, class_weight=data_gen.class_weight,
                             workers=8, epochs=args.epochs, shuffle=True)
         model.save_weights(model_file)
@@ -188,7 +188,7 @@ if __name__ == "__main__":
                 try:
                     for i in range(dens_blocks.shape[0]):
                         dens_blocks[i] = calc_gradient(dens_blocks[i])
-                    pred = model.predict(dens_blocks) > 0.999
+                    pred = model.predict(dens_blocks) > 0.5
                     error += np.any(pred)
                     if np.any(pred) == 0:
                         print filename  # no error detected
