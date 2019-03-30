@@ -144,16 +144,16 @@ def get_parsed_arguments():
     return parser.parse_args()
 
 
-def detection(windows):
+def detection(model, windows):
     if simple_pre_detection(windows):
         return True
     # consider all warnings as errors
     with warnings.catch_warnings():
         warnings.filterwarnings("error")
         try:
-            for i in range(dens_blocks.shape[0]):
-                dens_blocks[i] = calc_gradient(dens_blocks[i])
-            pred = model.predict(dens_blocks) > 0.5
+            for i in range(windows.shape[0]):
+                windows[i] = calc_gradient(windows[i])
+            pred = model.predict(windows) > 0.5
             hasError = np.any(pred)
         except Warning as e:
             print "warnning captured:", e
@@ -170,7 +170,6 @@ if __name__ == "__main__":
 
     args = get_parsed_arguments()
     model_file = args.model
-    print model_file
 
     if args.train:
         data_gen = FlashDatasetGenerator(args.clean, args.error, BATCH_SIZE)
@@ -196,6 +195,6 @@ if __name__ == "__main__":
         for filename in files:
             dens = hdf5_to_numpy(filename)
             dens_blocks = np.expand_dims(np.squeeze(split_to_blocks(dens)), -1)
-            if detection(dens_blocks):
+            if detection(model, dens_blocks):
                 error += 1
         print "detected %s error samples, total: %s, recall: %s" %(error, len(files), error*1.0/len(files))
