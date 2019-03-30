@@ -144,6 +144,23 @@ def get_parsed_arguments():
     return parser.parse_args()
 
 
+def detection(windows):
+    if simple_pre_detection(windows):
+        return True
+    # consider all warnings as errors
+    with warnings.catch_warnings():
+        warnings.filterwarnings("error")
+        try:
+            for i in range(dens_blocks.shape[0]):
+                dens_blocks[i] = calc_gradient(dens_blocks[i])
+            pred = model.predict(dens_blocks) > 0.5
+            hasError = np.any(pred)
+        except Warning as e:
+            print "warnning captured:", e
+            hasError = True
+    return hasError
+
+
 if __name__ == "__main__":
     # Construct the model
     try: model = multi_gpu_model(model)
@@ -172,28 +189,13 @@ if __name__ == "__main__":
             compute_metrics(pred, data_gen.labels)
     elif args.detect:
         model.load_weights(model_file)
-        error, nan_count = 0, 0
+        error = 0
         # match both for clean checkpoint files and k-delay corrupted files
         files = glob.glob(args.detect+"/*chk_*")+glob.glob(args.detect+"/*error*")
         files.sort()
         for filename in files:
             dens = hdf5_to_numpy(filename)
-            if np.isnan(dens).any():
-                error, nan_count = error+1, nan_count+1
-                continue
             dens_blocks = np.expand_dims(np.squeeze(split_to_blocks(dens)), -1)
-            # consider all warnings as errors
-            with warnings.catch_warnings():
-                warnings.filterwarnings("error")
-                try:
-                    for i in range(dens_blocks.shape[0]):
-                        dens_blocks[i] = calc_gradient(dens_blocks[i])
-                    pred = model.predict(dens_blocks) > 0.5
-                    error += np.any(pred)
-                    if np.any(pred) == 0:
-                        print filename  # no error detected
-                except Warning as e:
-                    error += 1
-                    print "here!!!!", e
-                    continue
-        print "detected %s error samples (%s nan samples), total: %s, recall: %s" %(error, nan_count, len(files), error*1.0/len(files))
+            if detection(dens_blocks):
+                error += 1
+        print "detected %s error samples, total: %s, recall: %s" %(error, len(files), error*1.0/len(files))
