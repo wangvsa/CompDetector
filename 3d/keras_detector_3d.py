@@ -173,7 +173,7 @@ if __name__ == "__main__":
 
     if args.train:
         data_gen = FlashDatasetGenerator(args.clean, args.error, BATCH_SIZE)
-        model.load_weights(model_file)
+        #model.load_weights(model_file)
         model.fit_generator(generator=data_gen, use_multiprocessing=True, class_weight=data_gen.class_weight,
                             workers=8, epochs=args.epochs, shuffle=True)
         model.save_weights(model_file)

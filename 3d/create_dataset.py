@@ -4,6 +4,7 @@ import numpy as np
 import glob
 from skimage.util.shape import view_as_windows, view_as_blocks
 NX, NY, NZ = 16, 16, 16
+OVERLAP = 4
 
 # See the difference of clean data and decompressed data with one error
 def test_sz(origin_file, decompressed_file):
@@ -44,10 +45,12 @@ def get_flip_error(val, bits = 20, threshold = None):
     error = max(-10000, error)
     return error
 
-def split_to_windows(frame, rows, cols, overlap):
-    step = cols - overlap
-    windows = view_as_windows(frame, (rows, cols), step = step)
-    return np.vstack(windows)
+def split_to_windows(frame):
+    step = (NX-OVERLAP, NY-OVERLAP, NZ-OVERLAP)
+    windows = view_as_windows(frame, (NX, NY, NZ), step = step)
+    d = np.vstack(windows)
+    d = np.vstack(d)
+    return d
 
 def split_to_blocks(frame):
     blocks = view_as_blocks(frame, (NX, NY, NZ))    # (8,8,8,16,16,16)
@@ -158,7 +161,7 @@ def create_split_dataset(data_dir, output_dir, insert_error=False, postfix=".cle
         #pres = hdf5_to_numpy(filename, "pres")
         #temp = hdf5_to_numpy(filename, "temp")
 
-        dens_blocks = np.squeeze(split_to_blocks(dens))
+        dens_blocks = np.squeeze(split_to_windows(dens))
         #pres_blocks = np.squeeze(split_to_blocks(pres))
         #temp_blocks = np.squeeze(split_to_blocks(temp))
 
