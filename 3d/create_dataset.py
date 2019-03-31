@@ -10,7 +10,7 @@ OVERLAP = 4
 def test_sz(origin_file, decompressed_file):
     origin = np.fromfile(origin_file, dtype=np.double)
     decompressed = np.fromfile(decompressed_file, dtype=np.double)
-    print np.mean(np.abs(origin-decompressed))
+    print(np.mean(np.abs(origin-decompressed)))
 
 # Flip a bit of a given position
 # val: input, python float(64 bits), equals double in C
@@ -87,20 +87,20 @@ def create_error_file(filename):
     #decompressed = np.fromfile(filename+".sz.out", dtype=np.double).reshape(480, 480)
     #windows = split_to_windows(decompressed, 60, 60, 20)
     #np.save(filename+".npy", windows)
-    #print "save to npy"
+    #print("save to npy")
 
 def combine_to_one_npy(directory):
     clean_dataset, error_dataset = [], []
     for filename in glob.iglob(directory+"/*plt_cnt_*"):
         if ".dat" not in filename:
-            print filename
+            print(filename)
             clean_dataset.append(hdf5_to_numpy(filename))
         if ".out" in filename:
-            print filename
+            print(filename)
             error_dataset.append(np.fromfile(filename, dtype=np.double).reshape(480, 480))
     clean = np.array(clean_dataset)
     error = np.array(error_dataset)
-    print clean.shape, error.shape
+    print(clean.shape, error.shape)
     np.save("clean.npy", clean)
     np.save("error.npy", error)
 
@@ -143,7 +143,7 @@ def create_split_compressed_error_dataset(data_dir):
 # where each file contains only one error
 def create_split_error_testset(data_dir):
     for filename in glob.iglob(data_dir+"/*plt_cnt_*.sz.out"):
-        print filename
+        print(filename)
         data = np.fromfile(filename, dtype=np.double).reshape(480, 480)
         windows = split_to_windows(data, NX, NY, 20)
         for i in range(windows.shape[0]):
@@ -168,7 +168,7 @@ def create_split_dataset(data_dir, output_dir, insert_error=False, postfix=".cle
         # -> (512, NX, NY, NZ, 3)
         #blocks = np.stack((dens_blocks, pres_blocks, temp_blocks), -1)
         blocks = np.expand_dims(dens_blocks, -1)
-        print filename, blocks.shape
+        print(filename, blocks.shape)
         for i in range(blocks.shape[0]):
             if insert_error:
                 postfix = ".error.npy"
