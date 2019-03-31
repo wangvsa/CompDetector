@@ -15,11 +15,8 @@ rank = comm.Get_rank()
 print rank, size
 val = rank
 
-sendbuf = np.zeros(1, dtype='i') + rank
-
-recvbuf = None
-if rank == 0:
-    recvbuf = np.empty(1, dtype='i')
+sendbuf = np.zeros(1)
+recvbuf = np.zeros(1)
 
 # Construct the model
 try:
@@ -27,10 +24,10 @@ try:
 except:
     pass
 model.compile(optimizer="adam", loss='binary_crossentropy', metrics=['accuracy'])
-model.load_weights("./models/model_keras.h5")
+model.load_weights("./models/model_keras_sod_15bits.h5")
 
 error = 0
-path = "/home/wangchen/Flash/LaserSlab/0/10_delay/"
+path = "/home/chenw/Flash/Sod_3d/0/10_delay/"
 files = glob.glob(path+"/*chk_*")+glob.glob(path+"/*error*")
 files.sort()
 
@@ -39,17 +36,19 @@ for filename in files:
     dens = hdf5_to_numpy(filename)
     dens_blocks = np.expand_dims(np.squeeze(split_to_blocks(dens)), -1)
 
+    #print rank, filename
     N = dens_blocks.shape[0] / size
     start_idx, end_idx = N*rank, N*(rank+1)
+    hasError = detection(model, dens_blocks[start_idx:end_idx])
+    sendbuf[0] = hasError # hasError is Ture/Flase
 
-    if detection(model, dens_blocks[start_idx:end_idx]):
-        error += 1
-sendbuf += error
-print rank, "detected %s error samples, total: %s, recall: %s" %(error, len(files), error*1.0/len(files))
+    comm.Reduce(sendbuf, recvbuf, op=MPI.LOR, root=0)
+    if rank == 0:
+        error += recvbuf[0]
+        print filename, recvbuf
 
-comm.Reduce(sendbuf, recvbuf, op=MPI.SUM, root=0)
 end = timer()
-if rank == 0:
-    print recvbuf
-    print(end-start)
 
+if rank == 0:
+    print "Running time: %s seconds." %(end-start)
+    print "detected %s error samples, total: %s, recall: %s" %(error, len(files), error*1.0/len(files))
