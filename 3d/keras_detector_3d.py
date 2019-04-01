@@ -6,7 +6,7 @@ import keras.backend as K
 import numpy as np
 import sys, glob, argparse, random
 import warnings
-from create_dataset import get_flip_error, split_to_blocks, hdf5_to_numpy
+from create_dataset import get_flip_error, split_to_blocks, split_to_windows, hdf5_to_numpy
 
 
 NX, NY, NZ = 16, 16, 16
@@ -86,7 +86,7 @@ class FlashDatasetGenerator(keras.utils.Sequence):
                 # Insert an error
                 x, y, z, v = random.randint(4, img.shape[0]-3), random.randint(4, img.shape[1]-3),\
                             random.randint(4, img.shape[2]-3), random.randint(0, img.shape[3]-1)
-                error = get_flip_error(img[x,y,z,v], 15)
+                error = get_flip_error(img[x,y,z,v], 20)
                 img[x, y, z, v] = error
             batch_x.append(calc_gradient(img))
         return np.array(batch_x), batch_y
@@ -173,7 +173,7 @@ if __name__ == "__main__":
 
     if args.train:
         data_gen = FlashDatasetGenerator(args.clean, args.error, BATCH_SIZE)
-        #model.load_weights(model_file)
+        model.load_weights(model_file)
         model.fit_generator(generator=data_gen, use_multiprocessing=True, class_weight=data_gen.class_weight,
                             workers=8, epochs=args.epochs, shuffle=True)
         model.save_weights(model_file)
