@@ -161,7 +161,7 @@ def create_split_dataset(data_dir, output_dir, insert_error=False, postfix=".cle
         #pres = hdf5_to_numpy(filename, "pres")
         #temp = hdf5_to_numpy(filename, "temp")
 
-        dens_blocks = np.squeeze(split_to_windows(dens))
+        dens_blocks = np.squeeze(split_to_blocks(dens))
         #pres_blocks = np.squeeze(split_to_blocks(pres))
         #temp_blocks = np.squeeze(split_to_blocks(temp))
 
