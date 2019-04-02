@@ -131,10 +131,10 @@ def create_split_error_testset(data_dir):
             output_filename = filename + "." + str(i) +".error.dat"
             windows[i].tofile(output_filename)   # Save to binary format
 
-def transfer_hdf5_to_numpy(data_dir):
+def transfer_hdf5_to_numpy(data_dir, var):
     files = glob.glob(data_dir+"/*chk_*")+glob.glob(data_dir+"/*error*")
     for f in files:
-        data = hdf5_to_numpy(f, "dens")
+        data = hdf5_to_numpy(f, var)
         np.save(f+".npy", data)
         os.system("rm "+f)
 
@@ -181,6 +181,7 @@ def get_parsed_arguments():
     # optional
     parser.add_argument("--input", help="Input directory", default="")
     parser.add_argument("--output", help="Output directory", default="")
+    parser.add_argument("--var", help="Variable to dump", default="dens")   # variable to dump
 
     return parser.parse_args()
 
@@ -192,4 +193,4 @@ if __name__ == "__main__":
     elif  args.error:
         create_split_dataset(args.input, args.output, True)
     elif args.convert:
-        transfer_hdf5_to_numpy(args.input)
+        transfer_hdf5_to_numpy(args.input, args.var)
