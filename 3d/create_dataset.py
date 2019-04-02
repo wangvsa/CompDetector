@@ -28,6 +28,12 @@ def hdf5_to_numpy(filename, var_name="dens"):
     data = np.swapaxes(data, 0, 2)  # swap NZ, NX axes -> NX, NY, NZ
     return data
 
+def read_data(filename, var="dens"):
+    if ".npy" in filename:
+        return np.load(filename)
+    else:
+        return hdf5_to_numpy(filename, var)
+
 def get_flip_error(val, bits = 20, threshold = None):
     attempt = 0
     while True :
@@ -146,13 +152,13 @@ def create_split_dataset(data_dir, output_dir, insert_error=False):
     file_list.sort()
     count = 0
     for filename in file_list:
-        dens = hdf5_to_numpy(filename, "dens")
-        #pres = hdf5_to_numpy(filename, "pres")
-        #temp = hdf5_to_numpy(filename, "temp")
+        dens = read_data(filename, "dens")
+        #pres = read_data(filename, "pres")
+        #temp = read_data(filename, "temp")
 
-        dens_blocks = np.squeeze(split_to_blocks(dens))
-        #pres_blocks = np.squeeze(split_to_blocks(pres))
-        #temp_blocks = np.squeeze(split_to_blocks(temp))
+        dens_blocks = np.squeeze(split_to_windows(dens))
+        #pres_blocks = np.squeeze(split_to_windows(pres))
+        #temp_blocks = np.squeeze(split_to_windows(temp))
 
         # -> (512, NX, NY, NZ, 3)
         #blocks = np.stack((dens_blocks, pres_blocks, temp_blocks), -1)
