@@ -1,7 +1,7 @@
 import os, sys, random, h5py
 import bitstring, math
 import numpy as np
-import glob
+import glob, argparse
 from skimage.util.shape import view_as_windows, view_as_blocks
 NX, NY, NZ = 16, 16, 16
 OVERLAP = 4
@@ -58,7 +58,7 @@ def split_to_blocks(frame):
     d = np.vstack(d)                                # (512,16,16,16)
     return d
 
-def create_error_file(filename):
+def create_compressed_error_file(filename):
     # 1. Read checkpoint hdf5 files
     data = hdf5_to_numpy(filename)
     print("1. Read file", filename)
@@ -89,25 +89,6 @@ def create_error_file(filename):
     #np.save(filename+".npy", windows)
     #print("save to npy")
 
-def combine_to_one_npy(directory):
-    clean_dataset, error_dataset = [], []
-    for filename in glob.iglob(directory+"/*plt_cnt_*"):
-        if ".dat" not in filename:
-            print(filename)
-            clean_dataset.append(hdf5_to_numpy(filename))
-        if ".out" in filename:
-            print(filename)
-            error_dataset.append(np.fromfile(filename, dtype=np.double).reshape(480, 480))
-    clean = np.array(clean_dataset)
-    error = np.array(error_dataset)
-    print(clean.shape, error.shape)
-    np.save("clean.npy", clean)
-    np.save("error.npy", error)
-
-def create_error_dataset(data_dir):
-    for filename in glob.iglob(data_dir+"/*plt_cnt_*"):
-        if ".dat" not in filename:
-            create_error_file(filename)
 
 # Read from split_data directory
 # Read window by window and inject one error into each window
@@ -150,8 +131,16 @@ def create_split_error_testset(data_dir):
             output_filename = filename + "." + str(i) +".error.dat"
             windows[i].tofile(output_filename)   # Save to binary format
 
+def transfer_hdf5_to_numpy(data_dir):
+    files = glob.glob(data_dir+"/*chk_*")+glob.glob(data_dir+"/*error*")
+    for f in files:
+        data = hdf5_to_numpy(f, "dens")
+        np.save(f+".npy", data)
+        os.system("rm "+f)
+
 # Read from FLASH directory(hdf5 files) or unsplit_data directory(binary files)
-def create_split_dataset(data_dir, output_dir, insert_error=False, postfix=".clean.npy"):
+def create_split_dataset(data_dir, output_dir, insert_error=False):
+    postfix = ".clean.npy"
     #file_list = glob.glob(data_dir+"/*plt_cnt_*")
     file_list = glob.glob(data_dir+"/*chk*")
     file_list.sort()
@@ -180,9 +169,27 @@ def create_split_dataset(data_dir, output_dir, insert_error=False, postfix=".cle
             output_filename = output_dir + "/" + tmp + "." + str(i) + postfix
             np.save(output_filename, blocks[i])
 
+def get_parsed_arguments():
+    parser = argparse.ArgumentParser()
+
+    # Rquired action, need to choose from one of the following.
+    parser_group = parser.add_mutually_exclusive_group(required=True)
+    parser_group.add_argument("--clean", help="Generate splitted clean dataset from a given directory", action="store_true")
+    parser_group.add_argument("--error", help="Generate splitted 0-delay error dataset from a given directory", action="store_true")
+    parser_group.add_argument("--convert", help="Convert checkpoint files in a given directory to numpy files", action="store_true")
+
+    # optional
+    parser.add_argument("--input", help="Input directory", default="")
+    parser.add_argument("--output", help="Output directory", default="")
+
+    return parser.parse_args()
+
 
 if __name__ == "__main__":
-    input_dir = sys.argv[1]
-    output_dir = sys.argv[2]
-    create_split_dataset(input_dir, output_dir, False)
-
+    args = get_parsed_arguments()
+    if args.clean:
+        create_split_dataset(args.input, args.output, False)
+    elif  args.error:
+        create_split_dataset(args.input, args.output, True)
+    elif args.convert:
+        transfer_hdf5_to_numpy(args.input)
