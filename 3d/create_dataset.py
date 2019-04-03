@@ -145,14 +145,14 @@ def transfer_hdf5_to_numpy(data_dir, var):
         os.system("rm "+f)
 
 # Read from FLASH directory(hdf5 files) or unsplit_data directory(binary files)
-def create_split_dataset(data_dir, output_dir, insert_error=False):
+def create_split_dataset(data_dir, output_dir, insert_error=False, var="dens"):
     postfix = ".clean.npy"
     #file_list = glob.glob(data_dir+"/*plt_cnt_*")
     file_list = glob.glob(data_dir+"/*chk*")
     file_list.sort()
     count = 0
     for filename in file_list:
-        dens = read_data(filename, "dens")
+        dens = read_data(filename, var)
         #pres = read_data(filename, "pres")
         #temp = read_data(filename, "temp")
 
@@ -195,8 +195,8 @@ def get_parsed_arguments():
 if __name__ == "__main__":
     args = get_parsed_arguments()
     if args.clean:
-        create_split_dataset(args.input, args.output, False)
+        create_split_dataset(args.input, args.output, False, args.var)
     elif  args.error:
-        create_split_dataset(args.input, args.output, True)
+        create_split_dataset(args.input, args.output, True, args.var)
     elif args.convert:
         transfer_hdf5_to_numpy(args.input, args.var)
