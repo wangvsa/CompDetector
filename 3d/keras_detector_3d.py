@@ -6,6 +6,7 @@ import keras.backend as K
 import numpy as np
 import sys, glob, argparse, random
 import warnings
+from timeit import default_timer as timer
 from create_dataset import get_flip_error, split_to_blocks, split_to_windows, hdf5_to_numpy, read_data
 
 
@@ -56,6 +57,7 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         return clean_files, error_files
 
     def __init__(self, clean_data_dir, error_data_dir, batch_size):
+        t1 = timer()
         self.zero_propagation = False
         if clean_data_dir:
             clean_files = glob.glob(clean_data_dir+"/*/clean/*")
@@ -71,6 +73,8 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         print("clean files:", len(clean_files), ", error files:", len(error_files))
         self.batch_size = batch_size
         self.files, self.labels = shuffle_two_lists(files, labels)
+        t2 = timer()
+        print("init dataset time:", (t2-t1))
 
     def __len__(self):
         return np.ceil(len(self.files) / float(self.batch_size))
@@ -174,9 +178,12 @@ if __name__ == "__main__":
     if args.train:
         data_gen = FlashDatasetGenerator(args.clean, args.error, BATCH_SIZE)
         #model.load_weights(model_file)
+        t1 = timer()
         model.fit_generator(generator=data_gen, use_multiprocessing=True, class_weight=data_gen.class_weight,
                             workers=8, epochs=args.epochs, shuffle=True)
         model.save_weights(model_file)
+        t2 = timer()
+        print("training time:", (t2-t1))
         print(model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1))
     elif args.test:
         data_gen = FlashDatasetGenerator(args.clean, args.error, BATCH_SIZE)
