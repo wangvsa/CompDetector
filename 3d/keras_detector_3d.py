@@ -6,7 +6,7 @@ import keras.backend as K
 import numpy as np
 import sys, glob, argparse, random
 import warnings
-from create_dataset import get_flip_error, split_to_blocks, split_to_windows, hdf5_to_numpy
+from create_dataset import get_flip_error, split_to_blocks, split_to_windows, hdf5_to_numpy, read_data
 
 
 NX, NY, NZ = 16, 16, 16
@@ -64,11 +64,11 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         else:   # insert error at runtime
             self.zero_propagation = True
             error_files = list(clean_files)
-        print "clean files:", len(clean_files), ", error files:", len(error_files)
+        print("clean files:", len(clean_files), ", error files:", len(error_files))
         clean_files, error_files = self.preprocess(clean_files, error_files)
         files = clean_files + error_files
         labels = np.append(np.zeros(len(clean_files)), np.ones(len(error_files)))
-        print "clean files:", len(clean_files), ", error files:", len(error_files)
+        print("clean files:", len(clean_files), ", error files:", len(error_files))
         self.batch_size = batch_size
         self.files, self.labels = shuffle_two_lists(files, labels)
 
@@ -122,8 +122,8 @@ def compute_metrics(pred_labels, true_labels):
     fn = np.sum(np.logical_and(pred_labels == 0, true_labels == 1))
     recall, fpr = tp / error_samples, fp / total
     accuracy = (tp + tn) / total
-    print 'TP: %s (%i/%i), FP: %s (%i/%i)' %(recall, tp, error_samples, fpr, fp, total)
-    print 'ACC: %s, TN: %i, FN: %i' %(accuracy, tn, fn)
+    print('TP: %s (%i/%i), FP: %s (%i/%i)' %(recall, tp, error_samples, fpr, fp, total))
+    print('ACC: %s, TN: %i, FN: %i' %(accuracy, tn, fn))
 
 
 def get_parsed_arguments():
@@ -156,7 +156,7 @@ def detection(model, windows):
             pred = model.predict(windows) > 0.5
             hasError = np.any(pred)
         except Warning as e:
-            print "warnning captured:", e
+            print("warnning captured:", e)
             hasError = True
     return hasError
 
@@ -177,13 +177,13 @@ if __name__ == "__main__":
         model.fit_generator(generator=data_gen, use_multiprocessing=True, class_weight=data_gen.class_weight,
                             workers=8, epochs=args.epochs, shuffle=True)
         model.save_weights(model_file)
-        print model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1)
+        print(model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1))
     elif args.test:
         data_gen = FlashDatasetGenerator(args.clean, args.error, BATCH_SIZE)
         model.load_weights(model_file)
         scores = model.predict_generator(generator=data_gen, use_multiprocessing=False, workers=1, verbose=1)
         for threshold in [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 0.99]:
-            print "Threshold =", threshold
+            print("Threshold =", threshold)
             pred = (scores >= threshold)
             compute_metrics(pred, data_gen.labels)
     elif args.detect:
@@ -192,9 +192,10 @@ if __name__ == "__main__":
         # match both for clean checkpoint files and k-delay corrupted files
         files = glob.glob(args.detect+"/*chk_*")+glob.glob(args.detect+"/*error*")
         files.sort()
+        files = files[0:200]
         for filename in files:
-            dens = hdf5_to_numpy(filename)
-            dens_blocks = np.expand_dims(np.squeeze(split_to_blocks(dens)), -1)
+            dens = read_data(filename)
+            dens_blocks = np.expand_dims(np.squeeze(split_to_windows(dens)), -1)
             if detection(model, dens_blocks):
                 error += 1
-        print "detected %s error samples, total: %s, recall: %s" %(error, len(files), error*1.0/len(files))
+        print("detected %s error samples, total: %s, recall: %s" %(error, len(files), error*1.0/len(files)))
