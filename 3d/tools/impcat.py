@@ -38,20 +38,50 @@ def crash_rate():
 def error_impact():
     path = sys.argv[1]
     clean_end_file = sys.argv[2]
-    for bit in range(0, 10):
-        mse, diff_count, diff_max, diff_rel_max = 0, 0, 0, 0
+    for bit in range(0, 64):
+        mse, diff_count, diff_max, diff_rel_max = [], [], [], []
         error_end_files = glob.glob(path+"/error_"+str(bit)+"_*_200.npy")
+        error_start_files = glob.glob(path+"/error_"+str(bit)+"_*_100.npy")
+
+        completion = len(error_end_files)
+        total = len(error_start_files)
+        crashed = total - completion
+
+        explicit_malignant, implicit_malignant = float(crashed), 0.0
+
+
         for error_end_file in error_end_files:
             t1, t2, t3, t4 = diff(clean_end_file, error_end_file)
-            mse += t1
-            diff_count += t2
-            diff_max += t3
-            diff_rel_max += t4
-            print t1, t2, t3, t4
-        N = len(error_end_files)
-        if N  == 0:
-            print("bit: %s, N: 0" %bit)
+            mse.append(t1)
+            diff_count.append(t2)
+            diff_max.append(t3)
+            diff_rel_max.append(t4)
+            if np.isnan(t4):
+                explicit_malignant += 1.0
+            elif t4 > 0.01:
+                implicit_malignant += 1.0
+            #print t1, t2, t3, t4
+        if completion == 0:
+            print("bit: %s, completion: 0" %bit)
         else:
-            print("bit: %s, N: %s, mse: %s, diff count: %s, diff max: %s, diff max rel: %s" %(bit, N, mse/N, diff_count/N, diff_max/N, diff_rel_max/N) )
+            pass
+            #print("bit: %s, completion: %s, total: %s, mse: %s, diff count: %s, diff max: %s, diff max rel: %s" \
+            #        %(bit, completion, len(error_start_files), sum(mse)/completion, sum(diff_count)/completion,\
+            #            sum(diff_max)/completion, sum(diff_rel_max)/completion))
+        #print("%s\t%s\t%s, crashed: %s" %((explicit_malignant+implicit_malignant)/total, explicit_malignant/total, implicit_malignant/total, crashed))
+        print("%s\t%s" %(explicit_malignant/total, implicit_malignant/total))
+
+
+# Get all maglinant error samples
+def get_maglinant_errors():
+    path = sys.argv[1]
+    clean_end_file = sys.argv[2]
+
+    for error_end_file in glob.glob(path+"/*_200.npy"):
+        start_file = error_end_file.replace("_200.npy", "_100.npy")
+        # Validate the end checkpoint
+        mse, diff_count, abs_error, rel_error = diff(clean_end_file, error_end_file)
+
+
 
 error_impact()
