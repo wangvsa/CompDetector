@@ -6,8 +6,8 @@ class AdaptiveDetector:
         self.it = 0
         self.order = 0
         self.fp = 0
-        #self.filterBound = 0.00078125
-        self.filterBound = 0.0001
+        self.filterBound = 0.00078125
+        #self.filterBound = 0.0001
         self.selectOrderFreq = 20
 
     def simple(self, d1):

@@ -32,7 +32,7 @@ def get_flip_error(val, bits = 20, threshold = None):
     attempt = 0
     while True :
         attempt += 1
-        pos = random.randint(1, bits)
+        pos = random.randint(0, bits)
         error = bit_flip(val, pos)
         if not math.isnan(error) and not math.isinf(error):
             if threshold is None or abs(error-val) > threshold:
@@ -41,8 +41,6 @@ def get_flip_error(val, bits = 20, threshold = None):
             error = 10
             break
     #if abs(error) <= 1e-3: error = 0
-    error = min(10000, error)
-    error = max(-10000, error)
     return error
 
 def split_to_windows(frame):
