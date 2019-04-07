@@ -15,7 +15,7 @@ We insert an error in each frame and see if AID can detect it
 '''
 def test_0_recall(prefix, total_iterations):
     aid = AdaptiveDetector()
-    aid.fp = 9
+    aid.fp = 42
 
     d5 = read_data(prefix, 0)
     d4 = read_data(prefix, 1)
@@ -34,7 +34,7 @@ def test_0_recall(prefix, total_iterations):
         truth = False
         if it % 2 == 0:
             truth = True
-            d[x, y, z] = get_flip_error(org, 20)
+            d[x, y, z] = get_flip_error(org, 13)
 
         hasError = aid.detect(d, d1, d2, d3, d4, d5)
         if hasError and truth:      # true positive

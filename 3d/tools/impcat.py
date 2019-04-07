@@ -82,10 +82,12 @@ def get_malignant_errors():
         start_file = error_end_file.replace("_200.npy", "_100.npy")
         # Validate the end checkpoint
         mse, diff_count, abs_error, rel_error = diff(clean_end_file, error_end_file)
-        if rel_error > 0.01:
+        if rel_error > 0.01 or np.isnan(mse):
             print start_file
             count += 1
-            os.system("cp "+start_file+" /home/wangchen/Flash/SC19/BlastBS/")
+            os.system("cp "+start_file+" /home/wangchen/Flash/SC19/BlastBS/malignant/")
+        else:
+            os.system("cp "+start_file+" /home/wangchen/Flash/SC19/BlastBS/benign/")
     print count
-error_impact()
-#get_malignant_errors()
+#error_impact()
+get_malignant_errors()
