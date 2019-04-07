@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
-import glob, sys
+import glob, sys, os
 import numpy as np
 from create_dataset import get_flip_error, hdf5_to_numpy, read_data
 
@@ -69,19 +69,23 @@ def error_impact():
             #        %(bit, completion, len(error_start_files), sum(mse)/completion, sum(diff_count)/completion,\
             #            sum(diff_max)/completion, sum(diff_rel_max)/completion))
         #print("%s\t%s\t%s, crashed: %s" %((explicit_malignant+implicit_malignant)/total, explicit_malignant/total, implicit_malignant/total, crashed))
-        print("%s\t%s" %(explicit_malignant/total, implicit_malignant/total))
+        print("%s: %s\t%s" %(bit, explicit_malignant/total, implicit_malignant/total))
 
 
 # Get all maglinant error samples
-def get_maglinant_errors():
+def get_malignant_errors():
     path = sys.argv[1]
     clean_end_file = sys.argv[2]
 
+    count = 0
     for error_end_file in glob.glob(path+"/*_200.npy"):
         start_file = error_end_file.replace("_200.npy", "_100.npy")
         # Validate the end checkpoint
         mse, diff_count, abs_error, rel_error = diff(clean_end_file, error_end_file)
-
-
-
+        if rel_error > 0.01:
+            print start_file
+            count += 1
+            os.system("cp "+start_file+" /home/wangchen/Flash/SC19/BlastBS/")
+    print count
 error_impact()
+#get_malignant_errors()
