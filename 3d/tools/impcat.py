@@ -18,7 +18,7 @@ def diff(clean, error):
     d1 = read_data(clean)
     d2 = read_data(error)
     mse = (np.square(d1 -d2)).mean(axis=None)
-    diff_count = np.sum(d1 != d2)
+    diff_count = np.sum(np.abs(d1-d2)>10e-5) + np.sum(np.isnan(d2))
     diff_max = np.max(np.abs(d1 - d2))
     diff_rel_max = np.max(np.abs((d1 - d2)/d1))
     return mse, diff_count, diff_max, diff_rel_max
@@ -64,12 +64,15 @@ def error_impact():
         if completion == 0:
             print("bit: %s, completion: 0" %bit)
         else:
-            pass
             #print("bit: %s, completion: %s, total: %s, mse: %s, diff count: %s, diff max: %s, diff max rel: %s" \
             #        %(bit, completion, len(error_start_files), sum(mse)/completion, sum(diff_count)/completion,\
             #            sum(diff_max)/completion, sum(diff_rel_max)/completion))
+            print("Bit: %s, MSE: %s, MAE: %s, MRE: %s, PAP: %.3f" \
+                    %(bit, sum(mse)/completion, sum(diff_max)/completion, \
+                        sum(diff_rel_max)/completion, sum(diff_count)/262144.0/completion))
+            pass
         #print("%s\t%s\t%s, crashed: %s" %((explicit_malignant+implicit_malignant)/total, explicit_malignant/total, implicit_malignant/total, crashed))
-        print("%s: %s\t%s" %(bit, explicit_malignant/total, implicit_malignant/total))
+        #print("%s: %s\t%s" %(bit, explicit_malignant/total, implicit_malignant/total))
 
 
 # Get all maglinant error samples
@@ -85,9 +88,9 @@ def get_malignant_errors():
         if rel_error > 0.01 or np.isnan(mse):
             print start_file
             count += 1
-            os.system("cp "+start_file+" /home/wangchen/Flash/SC19/BlastBS/malignant/")
+            os.system("cp "+start_file+" /home/wangchen/Flash/SC19/StirTurb/malignant/")
         else:
-            os.system("cp "+start_file+" /home/wangchen/Flash/SC19/BlastBS/benign/")
+            os.system("cp "+start_file+" /home/wangchen/Flash/SC19/StirTurb/benign/")
     print count
-#error_impact()
-get_malignant_errors()
+error_impact()
+#get_malignant_errors()
