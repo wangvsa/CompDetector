@@ -6,7 +6,7 @@ import torch.nn as nn
 import alex
 from alex import FlashDataset, FlashNet
 
-BATCH_SIZE = 128
+BATCH_SIZE = 256
 USE_GPU = True
 
 def load_model(model_file):
@@ -31,16 +31,18 @@ def load_model(model_file):
 if __name__ == "__main__":
 
     t1 = time.time()
-    model_file = "./sod.model"
+    model_file = "./sedov.model"
     model = load_model(model_file)
     t2 = time.time()
     print("loading time: ", t2-t1)
 
     # Training
-    trainset = FlashDataset(sys.argv[1])
-    train_loader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
-    alex.training(model, train_loader, epochs=1, use_gpu=USE_GPU)
-    torch.save(model, model_file)
+    #trainset = FlashDataset(sys.argv[1])
+    #train_loader = torch.utils.data.DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
+    #alex.training(model, train_loader, epochs=2, use_gpu=USE_GPU)
+    #torch.save(model, model_file)
 
     # Testing
-    alex.evaluating(model, train_loader, use_gpu=USE_GPU)
+    testset = FlashDataset(sys.argv[1], detection=True)
+    test_loader = torch.utils.data.DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=8)
+    alex.evaluating(model, test_loader, use_gpu=USE_GPU)
