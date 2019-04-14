@@ -74,3 +74,13 @@ foo@bar:~$ ls ./training/0/error/
 foo@bar:~$ python detector.py --data ./training -m ./my_model.h5 --train
 foo@bar:~$ python detector.py --data ./training -m ./my_model.h5 --test
 ```
+
+
+#### Detection
+The --train and --test options work on splitted dataset. We can use --detect to run the detector on original checkpoint files. 
+```console
+foo@bar:~$ ls PATH_TO_CHECKPOINTS/
+chk_0001  chk_0002  chk_0003 ...
+foo@bar:~$ python detector.py -m ./my_model.h5 --detect PATH_TO_CHECKPOINTS
+```
+
