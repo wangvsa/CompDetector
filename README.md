@@ -42,7 +42,7 @@ foo@bar:~$ ls ./training/0/error/
 <pre>
 usage: detector.py [-h] (--train | --test | --detect PATH)
                    [--data PATH_TO_DATASET] 
-                   [-n EPOCHS] [-m MODEL] [-k k]
+                   [-n EPOCHS] [-m MODEL] [-k k] [-b ERROR_BIT_RANGE]
 </pre>
 
 
@@ -54,11 +54,11 @@ The following example trains for 10 epochs and saves the model to ./my_model.h5.
 foo@bar:~$ python detector.py --data ./training -k 0 --train -n 10 -m ./my_model.h5
 ```
 
-Errors by default are injected by flipping one of the first 15 bits. However, this can be modified by -b option.
+Errors by default are injected by flipping one of the [0, 15] bits. However, this can be modified by -b option.
 ```console
 foo@bar:~$ python detector.py --data ./training -k 0 --train -n 10 -b 10 -m ./my_model.h5
 ```
-This example trains the detector with errors only injected in the first 10 bits. Note that -b only works when k = 0.
+This example trains the detector with errors only injected in [0, 10] bits. Note that -b only works when k = 0.
 
 
 #### Test on 0-delay dataset
