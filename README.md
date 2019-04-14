@@ -22,6 +22,40 @@ usage: detector.py [-h] (--train | --test | --detect PATH)
                             [-n EPOCHS] [-m MODEL]
 </pre>
 
+#### Directory Structure
+
+The training directory looks like the following, each sub-directory contains clean and error samples generated from one initial condition.
+```console
+foo@bar:~$ ls ./training
+0/  1/  2/
+foo@bar:~$ ls ./training/0/
+clean/  error/
+```
+#### Generate clean samples
+1. Run the simulation and save the checkpiont files
+2. Split each checkpoint file into a number of windows (samples)
+3. Put all samples into the corresponding clean directory.
+
+#### Train on 0-delay dataset
+The 0-delay corrupted dataset will be generated on the fly. No need to specifiy the directory to error samples.
+The following example trains for 10 epochs and saves the model to ./my_model.h5
+```console
+foo@bar:~$ python detector.py --clean ./training --train -n 10 -m ./my_model.h5
+```
+
+#### Test on 0-delay dataset
+Load the pre-trained model, and test it on the same 0-delay training set
+```console
+foo@bar:~$ python detector.py --clean ./training -m ./my_model.h5 --test
+```
+
+Load the pre-trained model, and test it on a 0-delay testing set. Note that testing directory should have the same
+sturcture as the training directory.
+```console
+foo@bar:~$ python detector.py --clean ./testing -m ./my_model.h5 --test
+```
+
+
 ## Examples
 
 1. Training </br>
