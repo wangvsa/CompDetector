@@ -139,7 +139,7 @@ def create_split_error_testset(data_dir):
             windows[i].tofile(output_filename)   # Save to binary format
 
 def transfer_hdf5_to_numpy(data_dir, var):
-    files = glob.glob(data_dir+"/*chk_*")+glob.glob(data_dir+"/*error*")
+    files = glob.glob(data_dir+"/*hdf5_*")+glob.glob(data_dir+"/*error*")
     for f in files:
         data = hdf5_to_numpy(f, var)
         np.save(f+".npy", data)
