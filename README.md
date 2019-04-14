@@ -29,6 +29,7 @@ clean/  error/
 3. Put all samples into the corresponding clean directory
 
 #### Generate k-delay corrupted samples
+// You can skip this step if only want to train/test on 0-delay dataset. 
 1. Restart the simulation from a corrupted checkpoint
 2. Run it for k iterations
 3. Split the output into windows and place them under ./error/k-delay/ directory, e.g.
@@ -40,8 +41,8 @@ foo@bar:~$ ls ./training/0/error/
 ## Usage
 <pre>
 usage: detector.py [-h] (--train | --test | --detect PATH)
-                            [--clean PATH_TO_CORRECT_SAMPLES] [--error PATH_TO_CORRUPTED_SAMPLES] 
-                            [-n EPOCHS] [-m MODEL]
+                   [--data PATH_TO_DATASET] 
+                   [-n EPOCHS] [-m MODEL] [-k k]
 </pre>
 
 
