@@ -44,29 +44,13 @@ foo@bar:~$ python detector.py --clean ./training --train -n 10 -m ./my_model.h5
 ```
 
 #### Test on 0-delay dataset
-Load the pre-trained model, and test it on the same 0-delay training set
+Example 1. Load the pre-trained model, and test it on the same 0-delay training set
 ```console
 foo@bar:~$ python detector.py --clean ./training -m ./my_model.h5 --test
 ```
 
-Load the pre-trained model, and test it on a 0-delay testing set. Note that testing directory should have the same
+Example 2. Load the pre-trained model, and test it on a 0-delay testing set. Note that testing directory should have the same
 sturcture as the training directory.
 ```console
 foo@bar:~$ python detector.py --clean ./testing -m ./my_model.h5 --test
-```
-
-
-## Examples
-
-1. Training </br>
-```console
-foo@bar:~$ python detector.py --clean PATH_TO_CORRECT_SAMPLES --error PATH_TO_COCCUPTED_SAMPLES --train -n 10
-```
-2. Testing </br>
-```console
-foo@bar:~$ python detector.py --clean PATH_TO_CORRECT_SAMPLES --error PATH_TO_COCCUPTED_SAMPLES --test
-```
-3. Detecting </br>
-```console
-foo@bar:~$ python detector.py -m MY_MODEL_FILE.h5 --detect PATH
 ```
