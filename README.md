@@ -47,15 +47,22 @@ usage: detector.py [-h] (--train | --test | --detect PATH)
 
 
 #### Train on 0-delay dataset
-Set k to 0 when training on 0-delay dataset. The 0-delay corrupted dataset can be generated on the fly
-(by inserting errors into clean samples). The corrupted samples under ./training/error/ will not be loaded.
-The following example trains for 10 epochs and saves the model to ./my_model.h5
+Set k to 0 when training on 0-delay dataset. The 0-delay corrupted dataset will be generated on the fly
+(by inserting errors into clean samples). Thus, the corrupted samples under ./training/error/ will not be loaded.
+The following example trains for 10 epochs and saves the model to ./my_model.h5.
 ```console
 foo@bar:~$ python detector.py --data ./training -k 0 --train -n 10 -m ./my_model.h5
 ```
 
+Errors by default are injected by flipping one of the first 15 bits. However, this can be modified by -b option.
+```console
+foo@bar:~$ python detector.py --data ./training -k 0 --train -n 10 -b 10 -m ./my_model.h5
+```
+This example trains the detector with errors only injected in the first 10 bits. Note that -b only works when k = 0.
+
+
 #### Test on 0-delay dataset
-Example 1. Load the pre-trained model, and test it on the same 0-delay training set
+Example 1. Load the pre-trained model, and test it on the same 0-delay training set.
 ```console
 foo@bar:~$ python detector.py --data ./training -k 0 -m ./my_model.h5 --test
 ```
@@ -68,7 +75,7 @@ foo@bar:~$ python detector.py --data ./testing -k 0 -m ./my_model.h5 --test
 
 #### Train on k-delay dataset
 If k is not specified, all corrupted samples under ./training/\*/error/\*/ will be loaded.
-Here's an example of training (and testing) on 0-delay and 5-delay dataset
+Here's an example of training (and testing) on 0-delay and 5-delay dataset.
 ```console
 foo@bar:~$ ls ./training/0/error/
 0-delay/  5-delay/
