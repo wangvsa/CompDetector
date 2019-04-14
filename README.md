@@ -14,15 +14,7 @@ experiments.
 2. Install dependent packages:
   numpy, keras, tensorflow-gpu (or tensorflow for CPU only), bitstring, h5py, mpi4py, scikit-image.
 
-
-## Usage
-<pre>
-usage: detector.py [-h] (--train | --test | --detect PATH)
-                            [--clean PATH_TO_CORRECT_SAMPLES] [--error PATH_TO_CORRUPTED_SAMPLES] 
-                            [-n EPOCHS] [-m MODEL]
-</pre>
-
-#### Directory Structure
+## Directory Structure
 
 The training directory looks like the following, each sub-directory contains clean and error samples generated from one initial condition.
 ```console
@@ -34,7 +26,23 @@ clean/  error/
 #### Generate clean samples
 1. Run the simulation and save the checkpiont files
 2. Split each checkpoint file into a number of windows (samples)
-3. Put all samples into the corresponding clean directory.
+3. Put all samples into the corresponding clean directory
+
+#### Generate k-delay corrupted samples
+1. Restart the simulation from a corrupted checkpoint
+2. Run it for k iterations
+3. Split the output into windows and put them in ./error/k-delay/ directory
+
+
+
+## Usage
+<pre>
+usage: detector.py [-h] (--train | --test | --detect PATH)
+                            [--clean PATH_TO_CORRECT_SAMPLES] [--error PATH_TO_CORRUPTED_SAMPLES] 
+                            [-n EPOCHS] [-m MODEL]
+</pre>
+
+
 
 #### Train on 0-delay dataset
 The 0-delay corrupted dataset will be generated on the fly. No need to specifiy the directory to error samples.
