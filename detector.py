@@ -56,16 +56,14 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         self.class_weight = {0:len(clean_files), 1:len(error_files)}
         return clean_files, error_files
 
-    def __init__(self, clean_data_dir, error_data_dir, batch_size):
+    def __init__(self, data_dir, batch_size, zero_propagation=True):
         t1 = timer()
-        self.zero_propagation = False
-        if clean_data_dir:
-            clean_files = glob.glob(clean_data_dir+"/*/clean/*")
-        if error_data_dir:
-            error_files = glob.glob(error_data_dir+"/*/*")
-        else:   # insert error at runtime
-            self.zero_propagation = True
+        self.zero_propagation = zero_propagation
+        clean_files = glob.glob(data_dir+"/*/clean/*")
+        if zero_propagation: # insert error at runtime
             error_files = list(clean_files)
+        else:
+            error_files = glob.glob(data_dir+"/*/error/*")
         print("clean files:", len(clean_files), ", error files:", len(error_files))
         clean_files, error_files = self.preprocess(clean_files, error_files)
         files = clean_files + error_files
@@ -124,9 +122,9 @@ def compute_metrics(pred_labels, true_labels):
     fp = np.sum(np.logical_and(pred_labels == 1, true_labels == 0))
     # False Negative (FN): we predict a label of 0 (negative), but the true label is 1.
     fn = np.sum(np.logical_and(pred_labels == 0, true_labels == 1))
-    recall, fpr = tp / error_samples, fp / total
+    recall, fpr = tp / error_samples, fp / (total-error_samples)
     accuracy = (tp + tn) / total
-    print('TP: %s (%i/%i), FP: %s (%i/%i)' %(recall, tp, error_samples, fpr, fp, total))
+    print('TP: %s (%i/%i), FP: %s (%i/%i)' %(recall, tp, error_samples, fpr, fp, total-error_samples))
     print('ACC: %s, TN: %i, FN: %i' %(accuracy, tn, fn))
 
 
@@ -141,9 +139,9 @@ def get_parsed_arguments():
 
     # optional
     parser.add_argument("-n", "--epochs", help="How many epochs for training", type=int, default=3)
-    parser.add_argument("-m", "--model", help="Specify thet model file", type=str, default="./models/model_keras.h5")
-    parser.add_argument("--clean", help="Path to splitted clean dataset", default="")
-    parser.add_argument("--error", help="Run the splitted error dataset", default="")
+    parser.add_argument("-m", "--model", help="Specify the model file", type=str, default="./models/model_keras.h5")
+    parser.add_argument("-k", help="the number of k", type=int, default=0)
+    parser.add_argument("--data", help="Path to splitted dataset", default="")
 
     return parser.parse_args()
 
@@ -176,7 +174,7 @@ if __name__ == "__main__":
     model_file = args.model
 
     if args.train:
-        data_gen = FlashDatasetGenerator(args.clean, args.error, BATCH_SIZE)
+        data_gen = FlashDatasetGenerator(args.data, BATCH_SIZE, args.k==0)
         #model.load_weights(model_file)
         t1 = timer()
         model.fit_generator(generator=data_gen, use_multiprocessing=True, class_weight=data_gen.class_weight,
@@ -186,7 +184,7 @@ if __name__ == "__main__":
         print("training time:", (t2-t1))
         print(model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1))
     elif args.test:
-        data_gen = FlashDatasetGenerator(args.clean, args.error, BATCH_SIZE)
+        data_gen = FlashDatasetGenerator(args.data, BATCH_SIZE, args.k==0)
         model.load_weights(model_file)
         scores = model.predict_generator(generator=data_gen, use_multiprocessing=False, workers=1, verbose=1)
         for threshold in [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 0.99]:
