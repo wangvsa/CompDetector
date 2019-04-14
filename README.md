@@ -17,7 +17,7 @@ experiments.
 
 ## Usage
 <pre>
-usage: keras_detector_3d.py [-h] (--train | --test | --detect PATH)
+usage: detector.py [-h] (--train | --test | --detect PATH)
                             [--clean PATH_TO_CORRECT_SAMPLES] [--error PATH_TO_CORRUPTED_SAMPLES] 
                             [-n EPOCHS] [-m MODEL]
 </pre>
@@ -26,13 +26,13 @@ usage: keras_detector_3d.py [-h] (--train | --test | --detect PATH)
 
 1. Training </br>
 ```console
-foo@bar:~$ python keras_detector_3d.py --clean PATH_TO_CORRECT_SAMPLES --error PATH_TO_COCCUPTED_SAMPLES --train -n 10
+foo@bar:~$ python detector.py --clean PATH_TO_CORRECT_SAMPLES --error PATH_TO_COCCUPTED_SAMPLES --train -n 10
 ```
 2. Testing </br>
 ```console
-foo@bar:~$ python keras_detector_3d.py --clean PATH_TO_CORRECT_SAMPLES --error PATH_TO_COCCUPTED_SAMPLES --test
+foo@bar:~$ python detector.py --clean PATH_TO_CORRECT_SAMPLES --error PATH_TO_COCCUPTED_SAMPLES --test
 ```
 3. Detecting </br>
 ```console
-foo@bar:~$ python keras_detector_3d.py -m MY_MODEL_FILE.h5 --detect PATH
+foo@bar:~$ python detector.py -m MY_MODEL_FILE.h5 --detect PATH
 ```
