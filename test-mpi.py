@@ -4,7 +4,7 @@
 from mpi4py import MPI
 import numpy as np
 import glob, sys
-from keras_detector_3d import detection, model
+from detector import detection, model
 from create_dataset import hdf5_to_numpy, split_to_blocks, read_data
 from timeit import default_timer as timer
 
