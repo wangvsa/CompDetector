@@ -56,8 +56,9 @@ class FlashDatasetGenerator(keras.utils.Sequence):
         self.class_weight = {0:len(clean_files), 1:len(error_files)}
         return clean_files, error_files
 
-    def __init__(self, data_dir, batch_size, zero_propagation=True):
+    def __init__(self, data_dir, batch_size, zero_propagation=True, bits=15):
         t1 = timer()
+        self.bits = bits
         self.zero_propagation = zero_propagation
         clean_files = glob.glob(data_dir+"/*/clean/*")
         if zero_propagation: # insert error at runtime
@@ -88,7 +89,7 @@ class FlashDatasetGenerator(keras.utils.Sequence):
                 # Insert an error
                 x, y, z, v = random.randint(4, img.shape[0]-3), random.randint(4, img.shape[1]-3),\
                             random.randint(4, img.shape[2]-3), random.randint(0, img.shape[3]-1)
-                error = get_flip_error(img[x,y,z,v], 19)
+                error = get_flip_error(img[x,y,z,v], self.bits)
                 img[x, y, z, v] = error
             batch_x.append(calc_gradient(img))
         return np.array(batch_x), batch_y
@@ -141,6 +142,7 @@ def get_parsed_arguments():
     parser.add_argument("-n", "--epochs", help="How many epochs for training", type=int, default=3)
     parser.add_argument("-m", "--model", help="Specify the model file", type=str, default="./models/model_keras.h5")
     parser.add_argument("-k", help="the number of k", type=int, default=0)
+    parser.add_argument("-b", "--bits", help="Error bits range", type=int, default=15)
     parser.add_argument("--data", help="Path to splitted dataset", default="")
 
     return parser.parse_args()
@@ -174,7 +176,7 @@ if __name__ == "__main__":
     model_file = args.model
 
     if args.train:
-        data_gen = FlashDatasetGenerator(args.data, BATCH_SIZE, args.k==0)
+        data_gen = FlashDatasetGenerator(args.data, BATCH_SIZE, args.k==0, args.bits)
         #model.load_weights(model_file)
         t1 = timer()
         model.fit_generator(generator=data_gen, use_multiprocessing=True, class_weight=data_gen.class_weight,
@@ -184,7 +186,7 @@ if __name__ == "__main__":
         print("training time:", (t2-t1))
         print(model.evaluate_generator(generator=data_gen, use_multiprocessing=True, workers=8, verbose=1))
     elif args.test:
-        data_gen = FlashDatasetGenerator(args.data, BATCH_SIZE, args.k==0)
+        data_gen = FlashDatasetGenerator(args.data, BATCH_SIZE, args.k==0, args.bits)
         model.load_weights(model_file)
         scores = model.predict_generator(generator=data_gen, use_multiprocessing=False, workers=1, verbose=1)
         for threshold in [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 0.99]:
