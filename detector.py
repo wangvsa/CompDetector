@@ -89,7 +89,7 @@ class FlashDatasetGenerator(keras.utils.Sequence):
                 # Insert an error
                 x, y, z, v = random.randint(4, img.shape[0]-3), random.randint(4, img.shape[1]-3),\
                             random.randint(4, img.shape[2]-3), random.randint(0, img.shape[3]-1)
-                error = get_flip_error(img[x,y,z,v], self.bits)
+                error, bit = get_flip_error(img[x,y,z,v], 0, self.bits)
                 img[x, y, z, v] = error
             batch_x.append(calc_gradient(img))
         return np.array(batch_x), batch_y

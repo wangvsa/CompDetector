@@ -34,11 +34,11 @@ def read_data(filename, var="dens"):
     else:
         return hdf5_to_numpy(filename, var)
 
-def get_flip_error(val, bits = 20, threshold = None):
+def get_flip_error(val, start_bit, end_bit, threshold = None):
     attempt = 0
     while True :
         attempt += 1
-        pos = random.randint(1, bits)
+        pos = random.randint(start_bit, end_bit)
         error = bit_flip(val, pos)
         if not math.isnan(error) and not math.isinf(error):
             if threshold is None or abs(error-val) > threshold:
@@ -50,7 +50,7 @@ def get_flip_error(val, bits = 20, threshold = None):
     # now we have pre-process/pre-detection, do not need this
     error = min(10000, error)
     error = max(-10000, error)
-    return error
+    return error, pos
 
 def split_to_windows(frame):
     step = (NX-OVERLAP, NY-OVERLAP, NZ-OVERLAP)
