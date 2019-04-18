@@ -43,11 +43,11 @@ def restart(checkpoint_file, postfix=0, var_name="dens"):
     #os.system("sed -i \'s/.*nend.*/nend = " +str(timestep+delay) + "/g\' ./flash.par_"+postfix)
 
     # 3. restart the flash program
-    os.system("mpirun -np 8 ./flash4 -par_file ./flash.par_"+postfix)
+    os.system("mpirun -np 4 ./flash4 -par_file ./flash.par_"+postfix)
 
     # 4. read the corrupted checkpoint file
-    new_start_name = "error_%s_%s_%s_%s_%s" %(bit,x,y,z,timestep)
-    new_end_name = "error_%s_%s_%s_%s_200" %(bit,x,y,z)
+    new_start_name = "error_%s_%s_%s_%s_%s_start" %(bit,x,y,z,timestep)
+    new_end_name = "error_%s_%s_%s_%s_%s_end" %(bit,x,y,z,timestep)
     np.save(new_start_name+".npy", read_data(start_checkpoint_file, var_name))
     np.save(new_end_name+".npy", read_data(end_checkpoint_file, var_name))
     os.system("rm " + start_checkpoint_file)
@@ -62,10 +62,8 @@ start_iter = int(sys.argv[2])
 end_iter = int(sys.argv[3])
 for t in range(start_iter, end_iter):
     checkpoint_file = basenm + ("0000"+str(t))[-4:]
-    for repeat in range(2):
-        #try:
-        postfix = (str(start_iter)+"to"+str(end_iter))
-        print postfix
-        restart(checkpoint_file, postfix=(str(start_iter)+"to"+str(end_iter)))
-        #except:
-        #    print("app crashs!!!")
+    for repeat in range(10):
+        try:
+            restart(checkpoint_file, postfix=(str(start_iter)+"to"+str(end_iter)))
+        except:
+            print("app crashs!!!")

@@ -38,17 +38,16 @@ def crash_rate():
 def error_impact():
     path = sys.argv[1]
     clean_end_file = sys.argv[2]
-    for bit in range(0, 64):
+    for bit in range(0, 31):
         mse, diff_count, diff_max, diff_rel_max = [], [], [], []
-        error_end_files = glob.glob(path+"/error_"+str(bit)+"_*_200.npy")
-        error_start_files = glob.glob(path+"/error_"+str(bit)+"_*_100.npy")
+        error_end_files = glob.glob(path+"/error_"+str(bit)+"_*_end.npy")
+        error_start_files = glob.glob(path+"/error_"+str(bit)+"_*_start.npy")
 
         completion = len(error_end_files)
         total = len(error_start_files)
         crashed = total - completion
 
         explicit_malignant, implicit_malignant = float(crashed), 0.0
-
 
         for error_end_file in error_end_files:
             t1, t2, t3, t4 = diff(clean_end_file, error_end_file)
@@ -62,17 +61,18 @@ def error_impact():
                 implicit_malignant += 1.0
             #print t1, t2, t3, t4
         if completion == 0:
-            print("bit: %s, completion: 0" %bit)
+            #print("bit: %s, completion: 0" %bit)
+            pass
         else:
             #print("bit: %s, completion: %s, total: %s, mse: %s, diff count: %s, diff max: %s, diff max rel: %s" \
             #        %(bit, completion, len(error_start_files), sum(mse)/completion, sum(diff_count)/completion,\
             #            sum(diff_max)/completion, sum(diff_rel_max)/completion))
-            print("Bit: %s, MSE: %s, MAE: %s, MRE: %s, PAP: %.3f" \
-                    %(bit, sum(mse)/completion, sum(diff_max)/completion, \
-                        sum(diff_rel_max)/completion, sum(diff_count)/262144.0/completion))
+            #print("Bit: %s, MSE: %s, MAE: %s, MRE: %s, PAP: %.3f" \
+            #        %(bit, sum(mse)/completion, sum(diff_max)/completion, \
+            #            sum(diff_rel_max)/completion, sum(diff_count)/262144.0/completion))
             pass
         #print("%s\t%s\t%s, crashed: %s" %((explicit_malignant+implicit_malignant)/total, explicit_malignant/total, implicit_malignant/total, crashed))
-        #print("%s: %s\t%s" %(bit, explicit_malignant/total, implicit_malignant/total))
+        print("%s\t%s\t%s" %(bit, explicit_malignant/total, implicit_malignant/total))
 
 
 # Get all maglinant error samples
