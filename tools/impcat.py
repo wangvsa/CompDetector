@@ -67,12 +67,12 @@ def error_impact():
             #print("bit: %s, completion: %s, total: %s, mse: %s, diff count: %s, diff max: %s, diff max rel: %s" \
             #        %(bit, completion, len(error_start_files), sum(mse)/completion, sum(diff_count)/completion,\
             #            sum(diff_max)/completion, sum(diff_rel_max)/completion))
-            #print("Bit: %s, MSE: %s, MAE: %s, MRE: %s, PAP: %.3f" \
-            #        %(bit, sum(mse)/completion, sum(diff_max)/completion, \
-            #            sum(diff_rel_max)/completion, sum(diff_count)/262144.0/completion))
+            print("Bit: %s, MSE: %s, MAE: %s, MRE: %s, PAP: %.3f" \
+                    %(bit, sum(mse)/completion, sum(diff_max)/completion, \
+                        sum(diff_rel_max)/completion, sum(diff_count)/262144.0/completion))
             pass
         #print("%s\t%s\t%s, crashed: %s" %((explicit_malignant+implicit_malignant)/total, explicit_malignant/total, implicit_malignant/total, crashed))
-        print("%s\t%s\t%s" %(bit, explicit_malignant/total, implicit_malignant/total))
+        #print("%s\t%s\t%s" %(bit, explicit_malignant/total, implicit_malignant/total))
 
 
 # Get all maglinant error samples
