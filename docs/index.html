@@ -5,7 +5,7 @@
         <h3>Sod Explosion</h3>
         <p>Sod 2D 128x128<br/>
 
-        <h4>Case 1. Introduce Error in Dens</h4>
+        <h4>Case 1. Introduce Error in Density</h4>
         Default initial conditions
         tmax = 0.4s - total of 164 steps</br>
         checkpoint interval time = 0.05s, checkpoints: [0000, 0008] </br>
@@ -19,30 +19,69 @@
         <img width=400 src="./images/Sod_2d/error_in_dens/error_trend/velx_error.png" alt="">
         <img width=400 src="./images/Sod_2d/error_in_dens/error_trend/temp_error.png" alt="">
 
-
-        <h4> error_in_dens(Density) </h4>
+        <h4>DIFF(Density) </h4>
         <img width=400 src="./images/Sod_2d/error_in_dens/dens0000.png" alt="Sod dens error_in_dens">
         <img width=400 src="./images/Sod_2d/error_in_dens/dens0001.png" alt="Sod dens error_in_dens">
         <img width=400 src="./images/Sod_2d/error_in_dens/dens0002.png" alt="Sod dens error_in_dens">
         <img width=400 src="./images/Sod_2d/error_in_dens/dens0003.png" alt="Sod dens error_in_dens">
 
-        <h4>error_in_dens(Pressure)</h4>
+        <h4>DIFF(Pressure)</h4>
         <img width=400 src="./images/Sod_2d/error_in_dens/pres0000.png" alt="Sod pres error_in_dens">
         <img width=400 src="./images/Sod_2d/error_in_dens/pres0001.png" alt="Sod pres error_in_dens">
         <img width=400 src="./images/Sod_2d/error_in_dens/pres0002.png" alt="Sod pres error_in_dens">
         <img width=400 src="./images/Sod_2d/error_in_dens/pres0003.png" alt="Sod pres error_in_dens">
 
-        <h4>error_in_dens(Temperature)</h4>
+        <h4>DIFF(Temperature)</h4>
         <img width=400 src="./images/Sod_2d/error_in_dens/temp0000.png" alt="Sod temp error_in_dens">
         <img width=400 src="./images/Sod_2d/error_in_dens/temp0001.png" alt="Sod temp error_in_dens">
         <img width=400 src="./images/Sod_2d/error_in_dens/temp0002.png" alt="Sod temp error_in_dens">
         <img width=400 src="./images/Sod_2d/error_in_dens/temp0003.png" alt="Sod temp error_in_dens">
 
-        <h4>error_in_dens(Velocity X)</h4>
+        <h4>DIFF(Velocity X)</h4>
         <img width=400 src="./images/Sod_2d/error_in_dens/velx0000.png" alt="Sod velx error_in_dens">
         <img width=400 src="./images/Sod_2d/error_in_dens/velx0001.png" alt="Sod velx error_in_dens">
         <img width=400 src="./images/Sod_2d/error_in_dens/velx0002.png" alt="Sod velx error_in_dens">
         <img width=400 src="./images/Sod_2d/error_in_dens/velx0003.png" alt="Sod velx error_in_dens">
+
+        <br><br/><br><br/><hr>
+
+        <h4>Case 2. Introduce Error in Pressure</h4>
+        Default initial conditions
+        tmax = 0.4s - total of 164 steps</br>
+        checkpoint interval time = 0.05s, checkpoints: [0000, 0008] </br>
+        plotfile interval time = 0.02s, plotfiles: [0000, 0021] </br>
+        restart from checkpoint 0004 (plotfile 0010) </br>
+        Introduce error at pres[40,40], original value:0.762, error value:1.5</p>
+
+        <h4>Max Error</h4>
+        <img width=400 src="./images/Sod_2d/error_in_pres/error_trend/dens.png" alt="">
+        <img width=400 src="./images/Sod_2d/error_in_pres/error_trend/pres.png" alt="">
+        <img width=400 src="./images/Sod_2d/error_in_pres/error_trend/velx.png" alt="">
+        <img width=400 src="./images/Sod_2d/error_in_pres/error_trend/temp.png" alt="">
+
+        <h4>DIFF(Density) </h4>
+        <img width=400 src="./images/Sod_2d/error_in_pres/dens0000.png" alt="Sod dens error_in_dens">
+        <img width=400 src="./images/Sod_2d/error_in_pres/dens0001.png" alt="Sod dens error_in_dens">
+        <img width=400 src="./images/Sod_2d/error_in_pres/dens0002.png" alt="Sod dens error_in_dens">
+        <img width=400 src="./images/Sod_2d/error_in_pres/dens0003.png" alt="Sod dens error_in_dens">
+
+        <h4>DIFF(Pressure)</h4>
+        <img width=400 src="./images/Sod_2d/error_in_pres/pres0000.png" alt="Sod pres error_in_dens">
+        <img width=400 src="./images/Sod_2d/error_in_pres/pres0001.png" alt="Sod pres error_in_dens">
+        <img width=400 src="./images/Sod_2d/error_in_pres/pres0002.png" alt="Sod pres error_in_dens">
+        <img width=400 src="./images/Sod_2d/error_in_pres/pres0003.png" alt="Sod pres error_in_dens">
+
+        <h4>DIFF(Temperature)</h4>
+        <img width=400 src="./images/Sod_2d/error_in_pres/temp0000.png" alt="Sod temp error_in_dens">
+        <img width=400 src="./images/Sod_2d/error_in_pres/temp0001.png" alt="Sod temp error_in_dens">
+        <img width=400 src="./images/Sod_2d/error_in_pres/temp0002.png" alt="Sod temp error_in_dens">
+        <img width=400 src="./images/Sod_2d/error_in_pres/temp0003.png" alt="Sod temp error_in_dens">
+
+        <h4>DIFF(Velocity X)</h4>
+        <img width=400 src="./images/Sod_2d/error_in_pres/velx0000.png" alt="Sod velx error_in_dens">
+        <img width=400 src="./images/Sod_2d/error_in_pres/velx0001.png" alt="Sod velx error_in_dens">
+        <img width=400 src="./images/Sod_2d/error_in_pres/velx0002.png" alt="Sod velx error_in_dens">
+        <img width=400 src="./images/Sod_2d/error_in_pres/velx0003.png" alt="Sod velx error_in_dens">
 
     </body>
 </html>
