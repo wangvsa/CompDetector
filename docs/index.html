@@ -44,7 +44,6 @@
         <img width=400 src="./images/Sod_2d/error_in_dens/velx0003.png" alt="Sod velx error_in_dens">
 
         <br><br/><br><br/><hr>
-
         <h4>Case 2. Introduce Error in Pressure</h4>
         Default initial conditions
         tmax = 0.4s - total of 164 steps</br>
@@ -83,5 +82,16 @@
         <img width=400 src="./images/Sod_2d/error_in_pres/velx0002.png" alt="Sod velx error_in_dens">
         <img width=400 src="./images/Sod_2d/error_in_pres/velx0003.png" alt="Sod velx error_in_dens">
 
+        <br><br/><br><br/><hr>
+        <h4>Case 3. Introduce Error in Temperature</h4>
+        Default initial conditions
+        tmax = 0.4s - total of 164 steps</br>
+        checkpoint interval time = 0.05s, checkpoints: [0000, 0008] </br>
+        plotfile interval time = 0.02s, plotfiles: [0000, 0021] </br>
+        restart from checkpoint 0004 (plotfile 0010) </br>
+        Introduce error at pres[40,40], original value:0.0, error value:1.5</p>
+        <b>The error disappears at next iteration, and the error does not propagate to any other variables</b>
+
+        <br><br/><br><br/><hr>
     </body>
 </html>
