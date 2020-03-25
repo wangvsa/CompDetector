@@ -1,11 +1,12 @@
 <html>
     <head></head>
     <body>
-        <h1>Silent Error Detector</h1>
-        <h3>Sod Explosion</h3>
-        <p>Sod 2D 128x128<br/>
+        <h1>Error Propagation Patterns</h1>
+        <h2>Sod Explosion</h2>
+        <p>FLASH4.4 Sod 2D 128x128<br/>
 
         <h4>Case 1. Introduce Error in Density</h4>
+
         Default initial conditions
         tmax = 0.4s - total of 164 steps</br>
         checkpoint interval time = 0.05s, checkpoints: [0000, 0008] </br>
@@ -104,7 +105,37 @@
         restart from checkpoint 0004 (plotfile 0010) </br>
         Introduce error at pres[40,40], original value:0.0, error value:1.5</p>
         <b>The error disappears at next iteration, and the error does not propagate to any other variables</b>
-
         <br><br/><br><br/><hr>
+
+
+        <h2>OrszagTang</h2>
+        <p>FLASH 4.4 OrszagTang 2D 200x200</p>
+        <h4>Case 1. Introduce Error in Density</h4>
+
+        Default initial conditions
+        tmax = 0.4s - total of 150 steps</br>
+        checkpoint interval step = 10, checkpoints: [0000, 15] </br>
+        plotfile interval time = 10, plotfiles: [0000, 15] </br>
+        restart from checkpoint 0007 </br>
+        Introduce error at dens[100,100], original value:0.5047, error value:1.5</p>
+
+        <h4>ERROR(Density) </h4>
+        <img width=400 src="./images/OrszagTang_2d/error_in_dens/dens_error_0000.png" alt="Sod dens error_in_dens">
+        <img width=400 src="./images/OrszagTang_2d/error_in_dens/dens_error_0001.png" alt="Sod dens error_in_dens">
+        <img width=400 src="./images/OrszagTang_2d/error_in_dens/dens_error_0002.png" alt="Sod dens error_in_dens">
+        <img width=400 src="./images/OrszagTang_2d/error_in_dens/dens_error_0003.png" alt="Sod dens error_in_dens">
+
+        <h4>Diff(Density) </h4>
+        <img width=400 src="./images/OrszagTang_2d/error_in_dens/dens0000.png"/>
+        <img width=400 src="./images/OrszagTang_2d/error_in_dens/dens0001.png"/>
+        <img width=400 src="./images/OrszagTang_2d/error_in_dens/dens0002.png"/>
+        <img width=400 src="./images/OrszagTang_2d/error_in_dens/dens0003.png"/>
+
+        <h4>Diff(Pressure) </h4>
+        <img width=400 src="./images/OrszagTang_2d/error_in_dens/pres0000.png"/>
+        <img width=400 src="./images/OrszagTang_2d/error_in_dens/pres0001.png"/>
+        <img width=400 src="./images/OrszagTang_2d/error_in_dens/pres0002.png"/>
+        <img width=400 src="./images/OrszagTang_2d/error_in_dens/pres0003.png"/>
+
     </body>
 </html>
